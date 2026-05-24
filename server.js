@@ -1066,6 +1066,32 @@ app.post('/api/users/:username/messages/read', requireAuth, (req, res) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// UPLOAD PAR URL DIRECTE
+// ─────────────────────────────────────────────────────────────────────────────
+app.post('/api/tracks/url', requireAuth, (req, res) => {
+  try {
+    const { title, genre, artistId, artistName, audioUrl, coverUrl } = req.body;
+    if (!title || !genre || !artistId || !artistName || !audioUrl) {
+      return res.status(400).json({ error: 'Données incomplètes' });
+    }
+    const id = Date.now();
+    db.prepare(`
+      INSERT INTO tracks (id, title, artistId, artistName, genre, audioUrl, coverUrl, likes, plays, uploadDate, isDefault, duration, format)
+      VALUES (@id, @title, @artistId, @artistName, @genre, @audioUrl, @coverUrl, 0, 0, @uploadDate, 0, 0, 'MP3')
+    `).run({
+      id, title, artistId, artistName, genre, audioUrl,
+      coverUrl: coverUrl || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&auto=format&fit=crop&q=60',
+      uploadDate: Date.now()
+    });
+    const track = buildTrackObject(db.prepare('SELECT * FROM tracks WHERE id = ?').get(id));
+    res.status(201).json(track);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Erreur lors de la publication' });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // START SERVER
 // ─────────────────────────────────────────────────────────────────────────────
 app.listen(PORT, () => {

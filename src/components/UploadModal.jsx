@@ -3,7 +3,7 @@ import { AppContext } from '../context/AppContext';
 import { X, Link, Image as ImageIcon } from 'lucide-react';
 
 export default function UploadModal() {
-  const { showUploadModal, setShowUploadModal, currentUser, API_URL, setTracks } = useContext(AppContext);
+  const { showUploadModal, setShowUploadModal, currentUser, setTracks } = useContext(AppContext);
   const [title, setTitle] = useState('');
   const [genre, setGenre] = useState('Hip-Hop');
   const [audioUrl, setAudioUrl] = useState('');
@@ -13,6 +13,8 @@ export default function UploadModal() {
   const [success, setSuccess] = useState(false);
 
   if (!showUploadModal) return null;
+
+  const API_URL = import.meta.env.VITE_API_URL || '';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -80,7 +82,7 @@ export default function UploadModal() {
         <form onSubmit={handleSubmit}>
           {/* URL Audio */}
           <div className="modal-form-group">
-            <label className="modal-label">URL du fichier audio (MP3 direct)</label>
+            <label className="modal-label">🔗 URL du fichier audio (lien MP3 direct)</label>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <Link size={16} color="var(--color-text-muted)" />
               <input
@@ -125,12 +127,13 @@ export default function UploadModal() {
               <option>Electro House</option>
               <option>Lo-Fi</option>
               <option>Rock</option>
+              <option>Classique</option>
             </select>
           </div>
 
           {/* URL Cover */}
           <div className="modal-form-group" style={{ marginBottom: 28 }}>
-            <label className="modal-label">URL image de couverture (Optionnel)</label>
+            <label className="modal-label">🖼️ URL image de couverture (Optionnel)</label>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <ImageIcon size={16} color="var(--color-text-muted)" />
               <input
