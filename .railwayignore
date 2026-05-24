@@ -1,0 +1,11 @@
+# Exclut les fichiers inutiles du déploiement Railway
+node_modules/
+dist/
+dist-desktop/
+src/
+electron-main.js
+electron-preload.cjs
+.env
+.env.production
+vite.config.js
+eslint.config.js

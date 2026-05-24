@@ -1,0 +1,134 @@
+{
+  "users": [
+    {
+      "username": "cdeveloppeur",
+      "displayName": "cdeveloppeur",
+      "password": "cdeveloppeur",
+      "role": "developer",
+      "premiumStatus": "premium_individual",
+      "bio": "Compte Développeur Officiel - Permissions d'Administration Actives",
+      "profileColor": "#FF4400",
+      "avatarSeed": "developer",
+      "playlists": [],
+      "likedTracks": [],
+      "messages": []
+    },
+    {
+      "username": "zyko921",
+      "displayName": "ZYKO921",
+      "password": "password123",
+      "role": "artist",
+      "premiumStatus": "premium_individual",
+      "bio": "Créateur de Pandofy - Bienvenue sur mon profil !",
+      "profileColor": "#FF6600",
+      "avatarSeed": "zyko",
+      "playlists": [],
+      "likedTracks": [],
+      "messages": []
+    },
+    {
+      "username": "auditeur",
+      "displayName": "Auditeur Test",
+      "password": "password123",
+      "role": "listener",
+      "premiumStatus": "none",
+      "bio": "Mélomane passionné",
+      "profileColor": "#A7A7A7",
+      "avatarSeed": "auditeur",
+      "playlists": [],
+      "likedTracks": [],
+      "messages": []
+    },
+    {
+      "username": "pandora",
+      "displayName": "pandora",
+      "password": "Zyko59430.",
+      "role": "artist",
+      "premiumStatus": "none",
+      "bio": "Passionné(e) de musique rejoignant Pandofy.",
+      "profileColor": "#FF6600",
+      "avatarSeed": "pandora",
+      "playlists": [],
+      "likedTracks": [
+        1779571206214,
+        1779574523808
+      ],
+      "messages": []
+    }
+  ],
+  "tracks": [
+    {
+      "id": 101,
+      "title": "Neon Horizon",
+      "artistName": "Pandofy Beats",
+      "artistId": "zyko921",
+      "genre": "Electro House",
+      "audioUrl": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
+      "coverUrl": "https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=500&auto=format&fit=crop&q=60",
+      "likes": 42,
+      "plays": 1204,
+      "uploadDate": 1779311862843,
+      "isDefault": true
+    },
+    {
+      "id": 102,
+      "title": "Solitude Groove",
+      "artistName": "Lofi Cafe",
+      "artistId": "zyko921",
+      "genre": "Lo-Fi",
+      "audioUrl": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
+      "coverUrl": "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=500&auto=format&fit=crop&q=60",
+      "likes": 85,
+      "plays": 3519,
+      "uploadDate": 1779398262843,
+      "isDefault": true
+    },
+    {
+      "id": 103,
+      "title": "Amber Skyline",
+      "artistName": "Sunset Rider",
+      "artistId": "zyko921",
+      "genre": "Synthwave",
+      "audioUrl": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3",
+      "coverUrl": "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&auto=format&fit=crop&q=60",
+      "likes": 121,
+      "plays": 8902,
+      "uploadDate": 1779484662843,
+      "isDefault": true
+    },
+    {
+      "id": 1779571206214,
+      "title": "ZZ - MAISON",
+      "artistId": "pandora",
+      "artistName": "Pandora",
+      "genre": "Hip-Hop",
+      "audioUrl": "/uploads/audio-1779571206199-911606147.mp3",
+      "coverUrl": "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&auto=format&fit=crop&q=60",
+      "likes": 1,
+      "plays": 0,
+      "uploadDate": 1779571206214
+    },
+    {
+      "id": 1779574523808,
+      "title": "TIMAR - EXPLICIT 69",
+      "artistId": "pandora",
+      "artistName": "pandora",
+      "genre": "Pop",
+      "audioUrl": "/uploads/audio-1779574523794-786572527.mp3",
+      "coverUrl": "/uploads/cover-1779574523806-852218576.png",
+      "likes": 1,
+      "plays": 0,
+      "uploadDate": 1779574523808
+    }
+  ],
+  "playlists": [
+    {
+      "id": 1779571189878,
+      "name": "Pandora",
+      "userId": "pandora",
+      "trackIds": [],
+      "coverUrl": "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=500&auto=format&fit=crop&q=60"
+    }
+  ],
+  "payments": []
+}
