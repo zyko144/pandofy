@@ -439,14 +439,18 @@ if (USE_CLOUDINARY) {
   });
   console.log('[STORAGE] Mode Cloudinary activé');
 } else {
+  const TMP_UPLOADS = '/tmp/pandofy-uploads';
+  if (!fs.existsSync(TMP_UPLOADS)) fs.mkdirSync(TMP_UPLOADS, { recursive: true });
   uploadStorage = multer.diskStorage({
-    destination: (req, file, cb) => cb(null, UPLOADS_DIR),
+    destination: (req, file, cb) => cb(null, TMP_UPLOADS),
     filename: (req, file, cb) => {
       const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
       const ext = path.extname(file.originalname);
       cb(null, file.fieldname + '-' + uniqueSuffix + ext);
     }
   });
+  app.use('/tmp-uploads', express.static(TMP_UPLOADS));
+  console.log('[STORAGE] Mode local /tmp activé');
 }
 
 const upload = multer({
@@ -661,12 +665,12 @@ app.post('/api/tracks', requireAuth, upload.fields([{ name: 'audio', maxCount: 1
     }
 
     const audioFile = audioFiles[0];
-    const audioUrl = `/uploads/${audioFile.filename}`;
+    const audioUrl = `/tmp-uploads/${audioFile.filename}`;
     const format = mimeToFormat(audioFile.mimetype);
 
     const coverFiles = req.files?.['cover'];
     const coverUrl = (coverFiles && coverFiles.length > 0)
-      ? `/uploads/${coverFiles[0].filename}`
+      ? `/tmp-uploads/${coverFiles[0].filename}`
       : 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&auto=format&fit=crop&q=60';
 
     // Extract audio duration
@@ -1092,10 +1096,21 @@ app.post('/api/tracks/url', requireAuth, (req, res) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// START SERVER
+// SERVE FRONTEND (dist/)
 // ─────────────────────────────────────────────────────────────────────────────
 app.use(express.static(path.join(__dirname, 'dist')));
-app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'dist', 'index.html')));
+app.get('*', (req, res) => {
+  const indexPath = path.join(__dirname, 'dist', 'index.html');
+  if (fs.existsSync(indexPath)) {
+    res.sendFile(indexPath);
+  } else {
+    res.status(404).json({ error: 'Frontend non build. Lancez npm run build.' });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// START SERVER
+// ─────────────────────────────────────────────────────────────────────────────
 app.listen(PORT, () => {
   console.log(`Pandofy server is running on http://localhost:${PORT}`);
 });
