@@ -699,7 +699,7 @@ app.delete('/api/tracks/:id', requireAuth, async (req, res) => {
 });
 
 // ─── ADMIN CLEAR ALL TRACKS ───────────────────────────────────────────────
-app.delete('/api/admin/clear-tracks', (req, res) => {
+app.get('/api/admin/clear-tracks', (req, res) => {
   const secret = req.query.secret;
   if (secret !== 'pandofy-admin-2026') {
     return res.status(403).json({ error: 'Non autorisé' });
