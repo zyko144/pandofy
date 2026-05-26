@@ -47,16 +47,13 @@
     "globals": "^17.6.0",
     "vite": "^8.0.12"
   },
- "build": {
-  "appId": "com.pandofy.app",
-  "productName": "Pandofy",
-  "publish": {
-    "provider": "github",
-    "owner": "zyko144",
-    "repo": "pandofy"
-  },
-  ...
-}
+  "build": {
+    "appId": "com.pandofy.app",
+    "productName": "Pandofy",
+    "publish": {
+      "provider": "github",
+      "owner": "zyko144",
+      "repo": "pandofy"
     },
     "files": [
       "dist/**/*",
@@ -78,15 +75,11 @@
       "target": [
         {
           "target": "nsis",
-          "arch": [
-            "x64"
-          ]
+          "arch": ["x64"]
         },
         {
           "target": "dir",
-          "arch": [
-            "x64"
-          ]
+          "arch": ["x64"]
         }
       ]
     },
