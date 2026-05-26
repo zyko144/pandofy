@@ -1,4 +1,6 @@
 import { app, BrowserWindow, ipcMain, shell } from 'electron';
+import pkg from 'electron-updater';
+const { autoUpdater } = pkg;
 import path from 'path';
 import http from 'http';
 import { fileURLToPath } from 'url';
@@ -70,6 +72,25 @@ if (!gotTheLock) {
     });
   }
 
+  // ─── AUTO-UPDATER ───────────────────────────────────────────────
+  autoUpdater.autoDownload = true;
+  autoUpdater.autoInstallOnAppQuit = true;
+
+  autoUpdater.on('update-available', (info) => {
+    const wins = BrowserWindow.getAllWindows();
+    if (wins.length > 0) wins[0].webContents.send('update-available', info);
+  });
+
+  autoUpdater.on('update-downloaded', (info) => {
+    const wins = BrowserWindow.getAllWindows();
+    if (wins.length > 0) wins[0].webContents.send('update-downloaded', info);
+  });
+
+  ipcMain.on('install-update', () => {
+    autoUpdater.quitAndInstall();
+  });
+  // ────────────────────────────────────────────────────────────────
+
   // Window IPC control handlers
   ipcMain.on('window-minimize', () => {
     const win = BrowserWindow.getFocusedWindow();
@@ -102,9 +123,15 @@ if (!gotTheLock) {
   });
 
   app.whenReady().then(async () => {
-    // Wait for Express server to be fully started before opening the UI
     await waitForServer();
     createWindow();
+
+    // Vérifie les mises à jour 5 secondes après le démarrage
+    setTimeout(() => {
+      autoUpdater.checkForUpdatesAndNotify().catch(err => {
+        console.log('[UPDATER] Pas de mise à jour ou erreur:', err.message);
+      });
+    }, 5000);
 
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) createWindow();

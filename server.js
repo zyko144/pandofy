@@ -698,6 +698,18 @@ app.delete('/api/tracks/:id', requireAuth, async (req, res) => {
   }
 });
 
+// ─── ADMIN CLEAR ALL TRACKS ───────────────────────────────────────────────
+app.delete('/api/admin/clear-tracks', (req, res) => {
+  const secret = req.query.secret;
+  if (secret !== 'pandofy-admin-2026') {
+    return res.status(403).json({ error: 'Non autorisé' });
+  }
+  db.prepare('DELETE FROM tracks').run();
+  db.prepare('DELETE FROM liked_tracks').run();
+  db.prepare('DELETE FROM playlist_tracks').run();
+  res.json({ success: true, message: 'Tous les sons supprimés !' });
+});
+
 // ─── LIKES ────────────────────────────────────────────────────────────────
 
 app.post('/api/tracks/:id/like', requireAuth, (req, res) => {

@@ -3,10 +3,10 @@ import { AppContext } from '../context/AppContext';
 import { X, Link, Image as ImageIcon } from 'lucide-react';
 
 export default function UploadModal() {
-  const { showUploadModal, setShowUploadModal, currentUser, setTracks } = useContext(AppContext);
+  const { showUploadModal, setShowUploadModal, user, setTracks } = useContext(AppContext);
   const [title, setTitle] = useState('');
   const [genre, setGenre] = useState('Hip-Hop');
-  const [audioUrl, setAudioUrl] = useState('');
+  const [youtubeUrl, setYoutubeUrl] = useState('');
   const [coverUrl, setCoverUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -14,18 +14,23 @@ export default function UploadModal() {
 
   if (!showUploadModal) return null;
 
-  const API_URL = import.meta.env.VITE_API_URL || '';
+  const API_URL = import.meta.env.VITE_API_URL || 'https://pandofy-1.onrender.com';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     if (!title.trim()) return setError("Le titre est requis");
-    if (!audioUrl.trim()) return setError("L'URL du son est requise");
+    if (!youtubeUrl.trim()) return setError("Le lien YouTube est requis");
+
+    const ytRegex = /^(https?:\/\/)?(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)[\w-]{11}/;
+    if (!ytRegex.test(youtubeUrl.trim())) {
+      return setError("Lien YouTube invalide. Ex: https://youtube.com/watch?v=XXXXXXXXXXX");
+    }
 
     try {
       setLoading(true);
       const token = localStorage.getItem('pandofy_token');
-      const res = await fetch(`${API_URL}/api/tracks/url`, {
+      const res = await fetch(`${API_URL}/api/tracks/youtube`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -34,9 +39,9 @@ export default function UploadModal() {
         body: JSON.stringify({
           title: title.trim(),
           genre,
-          artistId: currentUser.username,
-          artistName: currentUser.displayName,
-          audioUrl: audioUrl.trim(),
+          artistId: User.username,
+          artistName: User.displayName,
+          youtubeUrl: youtubeUrl.trim(),
           coverUrl: coverUrl.trim() || null
         })
       });
@@ -46,7 +51,7 @@ export default function UploadModal() {
 
       setTracks(prev => [data, ...prev]);
       setSuccess(true);
-      setTitle(''); setAudioUrl(''); setCoverUrl('');
+      setTitle(''); setYoutubeUrl(''); setCoverUrl('');
 
       setTimeout(() => {
         setShowUploadModal(false);
@@ -80,20 +85,23 @@ export default function UploadModal() {
         )}
 
         <form onSubmit={handleSubmit}>
-          {/* URL Audio */}
+          {/* URL YouTube */}
           <div className="modal-form-group">
-            <label className="modal-label">🔗 URL du fichier audio (lien MP3 direct)</label>
+            <label className="modal-label">🎵 Lien YouTube</label>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Link size={16} color="var(--color-text-muted)" />
+              <Link size={16} color="#FF0000" />
               <input
                 type="url"
                 className="modal-input"
-                placeholder="https://exemple.com/son.mp3"
-                value={audioUrl}
-                onChange={(e) => setAudioUrl(e.target.value)}
+                placeholder="https://youtube.com/watch?v=XXXXXXXXXXX"
+                value={youtubeUrl}
+                onChange={(e) => setYoutubeUrl(e.target.value)}
                 style={{ flex: 1 }}
               />
             </div>
+            <small style={{ color: 'var(--color-text-muted)', fontSize: '0.75rem', marginTop: 4, display: 'block' }}>
+              Colle le lien YouTube du morceau — la miniature est récupérée automatiquement
+            </small>
           </div>
 
           {/* Titre */}
@@ -131,15 +139,15 @@ export default function UploadModal() {
             </select>
           </div>
 
-          {/* URL Cover */}
+          {/* URL Cover optionnelle */}
           <div className="modal-form-group" style={{ marginBottom: 28 }}>
-            <label className="modal-label">🖼️ URL image de couverture (Optionnel)</label>
+            <label className="modal-label">🖼️ Image de couverture (Optionnel)</label>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <ImageIcon size={16} color="var(--color-text-muted)" />
               <input
                 type="url"
                 className="modal-input"
-                placeholder="https://exemple.com/cover.jpg"
+                placeholder="Laisse vide = miniature YouTube automatique"
                 value={coverUrl}
                 onChange={(e) => setCoverUrl(e.target.value)}
                 style={{ flex: 1 }}
