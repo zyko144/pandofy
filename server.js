@@ -284,7 +284,8 @@ const allowedOrigins = process.env.CORS_ORIGIN
   ? process.env.CORS_ORIGIN.split(',')
   : true; // true = toutes origines en local
 app.use(cors({ origin: allowedOrigins }));
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 if (!USE_CLOUDINARY) app.use('/uploads', express.static(UPLOADS_DIR));
 
 // ─────────────────────────────────────────────────────────────────────────────
