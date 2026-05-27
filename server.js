@@ -644,7 +644,7 @@ app.delete('/api/tracks/:id', requireAuth, async (req, res) => {
       return res.status(404).json({ error: 'Utilisateur introuvable' });
     }
 
-    const isAuthorized = userRow.username === 'cdeveloppeur' || userRow.role === 'developer' || userRow.role === 'admin';
+    const isAuthorized = userRow.username === 'cdeveloppeur' || userRow.role === 'developer' || userRow.role === 'admin' || userRow.username === track.artistId;
     if (!isAuthorized) {
       return res.status(403).json({ error: 'Permission refusée. Seul le compte Développeur / Admin peut supprimer des musiques.' });
     }

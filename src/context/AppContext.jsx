@@ -134,6 +134,17 @@ export const AppProvider = ({ children }) => {
     }
   };
 
+  // Electron auto-updater listeners
+  useEffect(() => {
+    if (!window.electronAPI) return;
+    window.electronAPI.onUpdateAvailable?.((info) => {
+      setUpdateInfo({ ...info, downloaded: false });
+    });
+    window.electronAPI.onUpdateDownloaded?.((info) => {
+      setUpdateInfo({ ...info, downloaded: true });
+    });
+  }, []);
+
   useEffect(() => {
     // Max 8 attempts × 400ms = 3.2 seconds before giving up
     async function waitForServerReady(maxRetries = 8, delay = 400) {
@@ -222,22 +233,23 @@ export const AppProvider = ({ children }) => {
   useEffect(() => {
     if (!currentTrack) return;
 
+    // Ne pas charger dans l'audio HTML si c'est un son YouTube
+    if (currentTrack.audioUrl?.startsWith('yt:')) {
+      audioRef.current.src = '';
+      audioRef.current.load();
+      return;
+    }
+
     const audio = audioRef.current;
     audio.currentTime = 0;
     setCurrentTime(0);
-
-    // Direct stream URL
     audio.src = currentTrack.audioUrl;
-    
-    // Set CORS dynamic configuration for analytics fallback
     if (currentTrack.audioUrl.startsWith(API_URL)) {
       audio.crossOrigin = 'anonymous';
     } else {
       audio.removeAttribute('crossorigin');
     }
-
     audio.load();
-
     if (isPlaying) {
       audio.play().catch(e => {
         console.log("Autoplay prevention:", e);

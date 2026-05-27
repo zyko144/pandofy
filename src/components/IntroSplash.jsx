@@ -40,7 +40,7 @@ export default function IntroSplash() {
       <p className="splash-subtitle">Écoutez. Créez. Partagez.</p>
       
       <button className="btn-primary enter-button" onClick={handleEnter}>
-        Entrer dans l'application
+        Accedez à Pandofy
       </button>
     </div>
   );
