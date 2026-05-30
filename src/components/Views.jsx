@@ -1,4 +1,4 @@
-import React, { useContext, useState, useEffect } from 'react';
+import React, { useContext, useState, useEffect, useRef } from 'react';
 import { AppContext } from '../context/AppContext';
 import { 
   Play, 
@@ -55,15 +55,33 @@ const formatTime = (timeInSeconds) => {
 // HOME VIEW
 // -------------------------------------------------------------
 function HomeView() {
-  const { tracks, playTrack, currentTrack, isPlaying, togglePlay, user, deleteTrack, formatDuration } = useContext(AppContext);
+  const { tracks, playTrack, currentTrack, isPlaying, togglePlay, user, deleteTrack, formatDuration, loadMoreTracks } = useContext(AppContext);
   const [greeting, setGreeting] = useState('Bonjour');
-  const [confirmDelete, setConfirmDelete] = useState(null); // {id, title}
+  const [confirmDelete, setConfirmDelete] = useState(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const loaderRef = useRef(null);
 
   const getFormatBadge = (format) => {
     if (!format) return null;
     const cls = format.toLowerCase();
     return <span className={`format-badge ${cls}`}>{format}</span>;
   };
+
+  // Infinite scroll
+  useEffect(() => {
+    if (!loaderRef.current) return;
+    const observer = new IntersectionObserver(async (entries) => {
+      if (entries[0].isIntersecting && hasMore && !loadingMore) {
+        setLoadingMore(true);
+        const more = await loadMoreTracks(tracks.length);
+        setHasMore(more);
+        setLoadingMore(false);
+      }
+    }, { threshold: 0.1 });
+    observer.observe(loaderRef.current);
+    return () => observer.disconnect();
+  }, [tracks.length, hasMore, loadingMore]);
 
   useEffect(() => {
     const hours = new Date().getHours();
@@ -152,6 +170,12 @@ function HomeView() {
               <p>Le serveur n'a pas encore de sons publiés. Lancez le bal en créant un compte Artiste !</p>
             </div>
           )}
+        </div>
+
+        {/* Infinite scroll loader */}
+        <div ref={loaderRef} style={{ padding: '20px', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>
+          {loadingMore && <span>Chargement...</span>}
+          {!hasMore && tracks.length > 0 && <span style={{ opacity: 0.4 }}>— Fin de la bibliothèque —</span>}
         </div>
       </div>
     </div>
