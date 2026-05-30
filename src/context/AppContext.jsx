@@ -104,10 +104,11 @@ export const AppProvider = ({ children }) => {
   // Fetch initial tracks, playlists and reload user session
   const refreshData = async () => {
     try {
-      const allTracks = await getTracks();
+      const tracksResponse = await getTracks();
       const allPlaylists = await getPlaylists();
-      // Normalize relative URLs for audio and cover images
-      const normalizedTracks = allTracks.map(t => ({
+      // Handle both paginated {tracks, total} and legacy array response
+      const rawTracks = Array.isArray(tracksResponse) ? tracksResponse : (tracksResponse?.tracks || []);
+      const normalizedTracks = rawTracks.map(t => ({
         ...t,
         audioUrl: normalizeUrl(t.audioUrl),
         coverUrl: normalizeUrl(t.coverUrl),
@@ -130,6 +131,26 @@ export const AppProvider = ({ children }) => {
     } catch (e) {
       console.error("Error refreshing data:", e);
     }
+  };
+
+  const loadMoreTracks = async (offset) => {
+    try {
+      const res = await fetch(`${API_URL}/api/tracks?limit=30&offset=${offset}`);
+      if (!res.ok) return false;
+      const data = await res.json();
+      const rawTracks = Array.isArray(data) ? data : (data?.tracks || []);
+      if (rawTracks.length === 0) return false;
+      const normalized = rawTracks.map(t => ({
+        ...t,
+        audioUrl: normalizeUrl(t.audioUrl),
+        coverUrl: normalizeUrl(t.coverUrl),
+      }));
+      setTracks(prev => {
+        const ids = new Set(prev.map(t => t.id));
+        return [...prev, ...normalized.filter(t => !ids.has(t.id))];
+      });
+      return rawTracks.length === 30;
+    } catch { return false; }
   };
 
   const checkAppVersion = async () => {
@@ -157,17 +178,38 @@ export const AppProvider = ({ children }) => {
     }
 
     async function initApp() {
-      setLoading(true);
-      await seedDatabaseIfEmpty();
-      // Wait for server to be ready (handles race condition on Electron startup)
+      // 1. Load cached data from IndexedDB instantly — no waiting
+      try {
+        await seedDatabaseIfEmpty();
+        const cachedTracks = await getTracks();
+        const cachedPlaylists = await getPlaylists();
+        const normalizedTracks = cachedTracks.map(t => ({
+          ...t,
+          audioUrl: normalizeUrl(t.audioUrl),
+          coverUrl: normalizeUrl(t.coverUrl),
+        }));
+        setTracks(normalizedTracks);
+        setPlaylists(cachedPlaylists);
+
+        const storedUser = localStorage.getItem('pandofy_session_user');
+        if (storedUser) {
+          const cachedUser = await getUser(storedUser);
+          if (cachedUser) setUser(cachedUser);
+        }
+      } catch (e) {
+        console.warn('Cache load error:', e);
+      }
+
+      // 2. Show UI immediately
+      setLoading(false);
+
+      // 3. Refresh from server in background (non-blocking)
       const serverReady = await waitForServerReady();
       if (serverReady) {
         setIsServerActive(true);
         await refreshData();
         await checkAppVersion();
       }
-      // Always unblock the UI, even if server is not ready
-      setLoading(false);
     }
     initApp();
   }, []);
@@ -803,6 +845,7 @@ export const AppProvider = ({ children }) => {
       // Server
       isServerActive,
       refreshData,
+    loadMoreTracks,
       // Utils
       formatDuration
     }}>

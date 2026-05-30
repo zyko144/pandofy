@@ -1,0 +1,131 @@
+/* ═══════════════════════════════════════════════════════
+   PANDOFY — PERFORMANCE & FLUIDITY OPTIMIZATIONS
+   ═══════════════════════════════════════════════════════ */
+
+/* GPU acceleration for all animated elements */
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Smooth scrolling everywhere */
+html, body {
+  scroll-behavior: smooth;
+  overflow: hidden;
+}
+
+/* All scrollable containers */
+.scrollable,
+.search-container,
+.playlists-container,
+.queue-panel,
+.library-container,
+.premium-container,
+.account-container {
+  overflow-y: auto;
+  overflow-x: hidden;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  will-change: scroll-position;
+  /* Custom scrollbar */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,102,0,0.3) transparent;
+}
+
+.scrollable::-webkit-scrollbar,
+.search-container::-webkit-scrollbar,
+.playlists-container::-webkit-scrollbar,
+.queue-panel::-webkit-scrollbar {
+  width: 4px;
+}
+.scrollable::-webkit-scrollbar-track,
+.search-container::-webkit-scrollbar-track,
+.playlists-container::-webkit-scrollbar-track,
+.queue-panel::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollable::-webkit-scrollbar-thumb,
+.search-container::-webkit-scrollbar-thumb,
+.playlists-container::-webkit-scrollbar-thumb,
+.queue-panel::-webkit-scrollbar-thumb {
+  background: rgba(255,102,0,0.25);
+  border-radius: 2px;
+}
+.scrollable::-webkit-scrollbar-thumb:hover,
+.search-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(255,102,0,0.5);
+}
+
+/* GPU acceleration for cards and transitions */
+.feature-card,
+.plan-card,
+.track-card,
+.track-item,
+.playlist-sidebar-item,
+.sidebar-menu-item,
+.mini-player,
+.player,
+.modal-content {
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+/* Instant transitions for nav items */
+.sidebar-menu-item {
+  transition: background-color 0.15s ease, color 0.15s ease !important;
+}
+
+/* Faster card hover */
+.track-card,
+.track-item {
+  transition: background-color 0.12s ease !important;
+}
+
+/* Contain layout for track lists — huge perf gain */
+.tracks-grid,
+.track-list,
+.search-results {
+  contain: layout style;
+}
+
+/* Optimize images */
+img {
+  image-rendering: auto;
+  will-change: auto;
+}
+
+/* Player GPU */
+.player {
+  transform: translate3d(0, 0, 0);
+}
+
+/* Smooth button press */
+button {
+  transition: opacity 0.1s ease, transform 0.1s ease;
+}
+button:active {
+  opacity: 0.75;
+  transform: scale(0.97);
+}
+
+/* Modal animation */
+.modal-overlay {
+  animation: fadeIn 0.15s ease;
+}
+.modal-content {
+  animation: slideUp 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Instant sidebar active state */
+.sidebar-menu-item.active {
+  transition: none !important;
+}

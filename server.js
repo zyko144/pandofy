@@ -539,8 +539,11 @@ app.get('/api/tracks/search', (req, res) => {
 
 app.get('/api/tracks', (req, res) => {
   try {
-    const rows = db.prepare('SELECT * FROM tracks ORDER BY uploadDate DESC').all();
-    res.json(rows.map(buildTrackObject));
+    const limit = parseInt(req.query.limit) || 30;
+    const offset = parseInt(req.query.offset) || 0;
+    const rows = db.prepare('SELECT * FROM tracks ORDER BY uploadDate DESC LIMIT ? OFFSET ?').all(limit, offset);
+    const total = db.prepare('SELECT COUNT(*) as c FROM tracks').get().c;
+    res.json({ tracks: rows.map(buildTrackObject), total, limit, offset });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Erreur lors de la récupération des pistes' });
