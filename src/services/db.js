@@ -71,17 +71,18 @@ export async function getTracks() {
   try {
     const res = await fetch(`${API_URL}/api/tracks`);
     if (res.ok) {
-      const serverTracks = await res.json();
+      const data = await res.json();
+      // Handle both paginated {tracks:[]} and legacy array response
+      const serverTracks = Array.isArray(data) ? data : (data?.tracks || []);
       return serverTracks.map(t => ({
         ...t,
-        audioUrl: t.audioUrl.startsWith('/uploads') ? `${API_URL}${t.audioUrl}` : t.audioUrl,
-        coverUrl: t.coverUrl.startsWith('/uploads') ? `${API_URL}${t.coverUrl}` : t.coverUrl
+        audioUrl: t.audioUrl?.startsWith('/uploads') ? `${API_URL}${t.audioUrl}` : t.audioUrl,
+        coverUrl: t.coverUrl?.startsWith('/uploads') ? `${API_URL}${t.coverUrl}` : t.coverUrl
       }));
     }
   } catch (e) {
     console.warn("Server offline, fetching local tracks from IndexedDB fallback.");
   }
-
   return localGetTracks();
 }
 
