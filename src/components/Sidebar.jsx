@@ -9,7 +9,8 @@ import {
   Plus, 
   Heart, 
   Upload,
-  Globe
+  Globe,
+  HelpCircle
 } from 'lucide-react';
 
 export default function Sidebar() {
@@ -22,7 +23,8 @@ export default function Sidebar() {
     setActivePlaylistId,
     setShowPlaylistModal,
     setShowUploadModal,
-    setShowAuthModal
+    setShowAuthModal,
+    setShowSupportModal
   } = useContext(AppContext);
 
   // Filter playlists created by the current user
@@ -119,6 +121,14 @@ export default function Sidebar() {
           <Globe size={20} style={{ color: 'var(--color-primary)' }} />
           <span>Site Officiel</span>
         </button>
+        <button
+          className="sidebar-menu-item"
+          onClick={() => setShowSupportModal(true)}
+          title="Contacter le support"
+        >
+          <HelpCircle size={20} style={{ color: '#CC44FF' }} />
+          <span>Support</span>
+        </button>
       </div>
 
       <div className="sidebar-divider"></div>
@@ -130,8 +140,8 @@ export default function Sidebar() {
           <span>Créer une playlist</span>
         </button>
         
-        {/* Tous les utilisateurs connectes peuvent publier */}
-        {user && (
+        {/* Only show upload button to artists and developers */}
+        {user && (user.role === 'artist' || user.role === 'developer' || user.role === 'admin' || user.username === 'cdeveloppeur') && (
           <button className="sidebar-menu-item" onClick={handlePublishClick} style={{ color: 'var(--color-primary)' }}>
             <Upload size={20} />
             <span>Publier un son</span>

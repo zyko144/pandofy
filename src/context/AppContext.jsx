@@ -36,6 +36,7 @@ export const AppProvider = ({ children }) => {
   const [activeTab, setActiveTab] = useState('home'); // home, search, library, premium, account, playlist, inbox
   const [activePlaylistId, setActivePlaylistId] = useState(null);
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [showSupportModal, setShowSupportModal] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showPlaylistModal, setShowPlaylistModal] = useState(false);
@@ -761,6 +762,8 @@ export const AppProvider = ({ children }) => {
       setActivePlaylistId,
       showUploadModal,
       setShowUploadModal,
+    showSupportModal,
+    setShowSupportModal,
       showAuthModal,
       setShowAuthModal,
       showPaymentModal,

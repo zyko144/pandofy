@@ -7,14 +7,16 @@ import Views from './components/Views';
 import UploadModal from './components/UploadModal';
 import AuthModal from './components/AuthModal';
 import PlaylistModal from './components/PlaylistModal';
+import SupportModal from './components/SupportModal';
+<SupportModal />
 import UpdateModal from './components/UpdateModal';
 import QueuePanel from './components/QueuePanel';
 import MiniPlayer from './components/MiniPlayer';
 import { User as UserIcon, LogIn, RotateCw, Search as SearchIcon, Music, X, Keyboard } from 'lucide-react';
 import { useKeyboardShortcuts, KEYBOARD_SHORTCUTS } from './hooks/useKeyboardShortcuts';
-import { API_BASE } from './utils/api';
+import { API_BASE } from './utils/api'
 
-const API_URL = API_BASE;
+const AP_URL = API_BASE;
 
 // ─── Modal Raccourcis clavier ─────────────────────────────────────────────────
 function ShortcutsModal({ onClose }) {

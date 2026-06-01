@@ -414,14 +414,14 @@ app.get('/api/admin/clear-tracks', async (req, res) => {
 // ─── VERSION ─────────────────────────────────────────────────
 app.get('/api/version', (req, res) => {
   res.json({
-    version: '1.5.0',
+    version: '2.2.0',
     changelog: [
-      '🚀 Base de données persistante PostgreSQL',
-      '🎵 Upload MP3 direct depuis votre PC',
-      '🗑️ Suppression de sons par le propriétaire',
-      '⚡ Chargement ultra-rapide avec pagination',
-      '🔄 Bouton actualiser dans le player',
-      '✨ What\'s New à chaque lancement',
+      '🎵 Import YouTube fonctionnel',
+      '📦 Upload jusqu\'à 10 sons simultanément',
+      '⚡ Fluidité optimale — latence supprimée',
+      '🔒 Sécurité v2.2.0 — upgrade global',
+      '💾 Données persistantes PostgreSQL + Cloudinary',
+      '🔄 Actualisation instantanée sans délai',
     ]
   });
 });
@@ -545,6 +545,21 @@ app.post('/api/users/:username/messages/read', requireAuth, async (req, res) => 
     await dbRun('UPDATE messages SET read = 1 WHERE username = $1', [username]);
     res.json(await buildUserObject(username));
   } catch (err) { res.status(500).json({ error: 'Erreur messages' }); }
+});
+
+// ─── SUPPORT ─────────────────────────────────────────────────
+app.post('/api/support', async (req, res) => {
+  try {
+    const { category, message, email, username } = req.body;
+    if (!message) return res.status(400).json({ error: 'Message requis' });
+    const msgId = Date.now();
+    const body = `Catégorie: ${category || 'Non spécifié'}\nUtilisateur: ${username}\nEmail: ${email || 'Non renseigné'}\n\nMessage:\n${message}`;
+    await dbRun(
+      `INSERT INTO messages (id, username, sender, subject, body, date, read) VALUES ($1,$2,$3,$4,$5,$6,0)`,
+      [msgId, 'cdeveloppeur', email || `${username}@pandofy.app`, `[SUPPORT] ${category || 'Message'}`, body, Date.now()]
+    );
+    res.json({ success: true });
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Erreur envoi support' }); }
 });
 
 // ─── START ───────────────────────────────────────────────────
