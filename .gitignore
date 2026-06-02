@@ -34,3 +34,4 @@ dist-desktop/
 "node_modules/" 
 "dist/" 
 "dist/" 
+dist/ 
