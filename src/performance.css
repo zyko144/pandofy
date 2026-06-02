@@ -1,131 +1,39 @@
-/* ═══════════════════════════════════════════════════════
-   PANDOFY — PERFORMANCE & FLUIDITY OPTIMIZATIONS
-   ═══════════════════════════════════════════════════════ */
+/* PANDOFY — PERFORMANCE OPTIMIZATIONS */
+* { -webkit-font-smoothing: antialiased; }
 
-/* GPU acceleration for all animated elements */
-* {
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
+/* Remove expensive backdrop-filter */
+.header { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; background: rgba(7,7,7,0.95) !important; }
+.modal-overlay { backdrop-filter: none !important; }
 
-/* Smooth scrolling everywhere */
-html, body {
-  scroll-behavior: smooth;
-  overflow: hidden;
-}
+/* GPU acceleration */
+.player, .sidebar, .main-content { transform: translateZ(0); will-change: auto; }
 
-/* All scrollable containers */
-.scrollable,
-.search-container,
-.playlists-container,
-.queue-panel,
-.library-container,
-.premium-container,
-.account-container {
-  overflow-y: auto;
-  overflow-x: hidden;
-  scroll-behavior: smooth;
+/* Smooth instant scrolling */
+.scrollable, .search-container, .playlists-container, .queue-panel {
+  overflow-y: auto; scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
-  will-change: scroll-position;
-  /* Custom scrollbar */
   scrollbar-width: thin;
-  scrollbar-color: rgba(255,102,0,0.3) transparent;
-}
-
-.scrollable::-webkit-scrollbar,
-.search-container::-webkit-scrollbar,
-.playlists-container::-webkit-scrollbar,
-.queue-panel::-webkit-scrollbar {
-  width: 4px;
-}
-.scrollable::-webkit-scrollbar-track,
-.search-container::-webkit-scrollbar-track,
-.playlists-container::-webkit-scrollbar-track,
-.queue-panel::-webkit-scrollbar-track {
-  background: transparent;
-}
-.scrollable::-webkit-scrollbar-thumb,
-.search-container::-webkit-scrollbar-thumb,
-.playlists-container::-webkit-scrollbar-thumb,
-.queue-panel::-webkit-scrollbar-thumb {
-  background: rgba(255,102,0,0.25);
-  border-radius: 2px;
-}
-.scrollable::-webkit-scrollbar-thumb:hover,
-.search-container::-webkit-scrollbar-thumb:hover {
-  background: rgba(255,102,0,0.5);
-}
-
-/* GPU acceleration for cards and transitions */
-.feature-card,
-.plan-card,
-.track-card,
-.track-item,
-.playlist-sidebar-item,
-.sidebar-menu-item,
-.mini-player,
-.player,
-.modal-content {
-  will-change: transform;
-  transform: translateZ(0);
-  backface-visibility: hidden;
-}
-
-/* Instant transitions for nav items */
-.sidebar-menu-item {
-  transition: background-color 0.15s ease, color 0.15s ease !important;
-}
-
-/* Faster card hover */
-.track-card,
-.track-item {
-  transition: background-color 0.12s ease !important;
-}
-
-/* Contain layout for track lists — huge perf gain */
-.tracks-grid,
-.track-list,
-.search-results {
+  scrollbar-color: rgba(255,102,0,0.2) transparent;
   contain: layout style;
 }
+.scrollable::-webkit-scrollbar { width: 3px; }
+.scrollable::-webkit-scrollbar-track { background: transparent; }
+.scrollable::-webkit-scrollbar-thumb { background: rgba(255,102,0,0.2); border-radius: 2px; }
 
-/* Optimize images */
-img {
-  image-rendering: auto;
-  will-change: auto;
-}
-
-/* Player GPU */
-.player {
-  transform: translate3d(0, 0, 0);
-}
-
-/* Smooth button press */
-button {
-  transition: opacity 0.1s ease, transform 0.1s ease;
-}
-button:active {
-  opacity: 0.75;
-  transform: scale(0.97);
-}
+/* Faster transitions */
+.sidebar-menu-item { transition: background-color 0.1s ease, color 0.1s ease !important; }
+.track-card, .track-item { transition: background-color 0.08s ease !important; contain: layout style; }
+button { transition: opacity 0.08s ease !important; }
+button:active { opacity: 0.75; transform: scale(0.97); }
 
 /* Modal animation */
-.modal-overlay {
-  animation: fadeIn 0.15s ease;
-}
-.modal-content {
-  animation: slideUp 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-}
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-@keyframes slideUp {
-  from { opacity: 0; transform: translateY(20px) scale(0.97); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
-}
+.modal-overlay { animation: fadeIn 0.12s ease; }
+.modal-content { animation: slideUp 0.15s cubic-bezier(0.16, 1, 0.3, 1); }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideUp { from { opacity: 0; transform: translateY(16px) scale(0.98); } to { opacity: 1; transform: none; } }
 
-/* Instant sidebar active state */
-.sidebar-menu-item.active {
-  transition: none !important;
-}
+/* Lazy images */
+img { loading: lazy; }
+
+/* Reduce paint areas */
+.features-grid, .plans-grid, .tracks-grid { contain: layout; }

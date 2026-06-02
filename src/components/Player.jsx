@@ -205,23 +205,27 @@ export default function Player({ onToggleQueue, showQueue }) {
 
   return (
     <footer className="player">
-      {/* YouTube hidden iframe */}
+      {/* YouTube audio iframe - autoplay enabled via Electron policy */}
       {isYouTube && ytId && (
         <iframe
+          key={ytId}
           ref={ytIframeRef}
-          src={`https://www.youtube-nocookie.com/embed/${ytId}?enablejsapi=1&autoplay=1&controls=0&playsinline=1&mute=0`}
-          style={{ position: 'fixed', width: 2, height: 2, bottom: 60, right: 0, opacity: 0.01, pointerEvents: 'none', border: 'none', zIndex: -1 }}
-          allow="autoplay; encrypted-media; picture-in-picture"
-          allowFullScreen
+          src={`https://www.youtube.com/embed/${ytId}?autoplay=1&enablejsapi=1&controls=0&playsinline=1&rel=0&modestbranding=1`}
+          style={{ position: 'fixed', bottom: 70, right: 4, width: 4, height: 4, opacity: 0.02, pointerEvents: 'none', border: 'none', zIndex: 1 }}
+          allow="autoplay; encrypted-media; picture-in-picture; web-share"
           title="yt-audio"
           onLoad={() => {
+            // Send play command after iframe loads
             setTimeout(() => {
               try {
                 ytIframeRef.current?.contentWindow?.postMessage(
                   JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*'
                 );
+                ytIframeRef.current?.contentWindow?.postMessage(
+                  JSON.stringify({ event: 'command', func: 'setVolume', args: [muted ? 0 : Math.round(volume * 100)] }), '*'
+                );
               } catch {}
-            }, 1000);
+            }, 800);
           }}
         />
       )}
