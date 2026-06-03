@@ -568,7 +568,7 @@ const require2 = createRequire(import.meta.url);
 const distPath = path.join(__dirname, 'dist');
 if (fs.existsSync(distPath)) {
   app.use(express.static(distPath));
-  app.get('*', (req, res, next) => {
+  app.use((req, res, next) => {
     if (req.path.startsWith('/api') || req.path.startsWith('/uploads')) return next();
     const indexFile = path.join(distPath, 'index.html');
     if (fs.existsSync(indexFile)) res.sendFile(indexFile);
