@@ -2,6 +2,7 @@ import { app, BrowserWindow, ipcMain, shell, session } from 'electron';
 import pkg from 'electron-updater';
 const { autoUpdater } = pkg;
 import path from 'path';
+import http from 'http';
 import { fileURLToPath } from 'url';
 
 const gotTheLock = app.requestSingleInstanceLock();
@@ -9,8 +10,23 @@ const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) { app.quit(); } else {
   const __filename = fileURLToPath(import.meta.url);
   const __dirname = path.dirname(__filename);
+  const PORT = process.env.PORT || 3001;
 
   import('./server.js').catch(err => console.error('[SERVER]', err));
+
+  // Wait for local server (serves both API + static files)
+  function waitForServer(retries = 40, interval = 300) {
+    return new Promise(resolve => {
+      let attempts = 0;
+      const try_ = () => {
+        attempts++;
+        const req = http.get(`http://localhost:${PORT}/api/version`, res => { res.resume(); resolve(true); });
+        req.on('error', () => { if (attempts < retries) setTimeout(try_, interval); else resolve(false); });
+        req.setTimeout(400, () => req.destroy());
+      };
+      try_();
+    });
+  }
 
   function createWindow() {
     const win = new BrowserWindow({
@@ -21,25 +37,29 @@ if (!gotTheLock) { app.quit(); } else {
       webPreferences: {
         nodeIntegration: false, contextIsolation: true,
         webSecurity: false, backgroundThrottling: false,
-        autoplayPolicy: 'no-user-gesture-required', // ← Fix YouTube autoplay
+        autoplayPolicy: 'no-user-gesture-required',
         preload: path.join(__dirname, 'electron-preload.cjs')
       }
     });
 
     win.setMenuBarVisibility(false);
 
-    // Remove X-Frame-Options to allow YouTube iframes
+    // Allow all origins — fix YouTube iframes
     session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
-      const headers = { ...details.responseHeaders };
-      delete headers['x-frame-options'];
-      delete headers['X-Frame-Options'];
-      headers['Content-Security-Policy'] = ["default-src 'self' 'unsafe-inline' 'unsafe-eval' https: http://localhost:* data: blob: ws: wss:"];
-      headers['Permissions-Policy'] = ['autoplay=*, camera=(), microphone=()'];
-      callback({ responseHeaders: headers });
+      const h = { ...details.responseHeaders };
+      delete h['x-frame-options']; delete h['X-Frame-Options'];
+      h['Content-Security-Policy'] = ["default-src 'self' 'unsafe-inline' 'unsafe-eval' https: http://localhost:* data: blob: ws: wss:"];
+      h['Permissions-Policy'] = ['autoplay=*, camera=(), microphone=()'];
+      callback({ responseHeaders: h });
     });
 
     win.once('ready-to-show', () => win.show());
-    win.loadFile(path.join(__dirname, 'dist', 'index.html')).catch(() => win.loadURL('http://localhost:5173'));
+
+    // Load from local HTTP server — YouTube iframes work from http://localhost
+    win.loadURL(`http://localhost:${PORT}`).catch(() => {
+      win.loadFile(path.join(__dirname, 'dist', 'index.html'));
+    });
+
     return win;
   }
 
@@ -59,7 +79,8 @@ if (!gotTheLock) { app.quit(); } else {
 
   app.on('second-instance', () => { const w = BrowserWindow.getAllWindows()[0]; if(w) { if(w.isMinimized()) w.restore(); w.focus(); } });
 
-  app.whenReady().then(() => {
+  app.whenReady().then(async () => {
+    await waitForServer();
     createWindow();
     setTimeout(() => autoUpdater.checkForUpdatesAndNotify().catch(() => {}), 8000);
     app.on('activate', () => { if(BrowserWindow.getAllWindows().length === 0) createWindow(); });

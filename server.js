@@ -562,5 +562,19 @@ app.post('/api/support', async (req, res) => {
   } catch (err) { console.error(err); res.status(500).json({ error: 'Erreur envoi support' }); }
 });
 
+// ─── STATIC FILES (for Electron) ─────────────────────────────
+import { createRequire } from 'module';
+const require2 = createRequire(import.meta.url);
+const distPath = path.join(__dirname, 'dist');
+if (fs.existsSync(distPath)) {
+  app.use(express.static(distPath));
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api') || req.path.startsWith('/uploads')) return next();
+    const indexFile = path.join(distPath, 'index.html');
+    if (fs.existsSync(indexFile)) res.sendFile(indexFile);
+    else next();
+  });
+}
+
 // ─── START ───────────────────────────────────────────────────
 app.listen(PORT, () => console.log(`Pandofy server running on http://localhost:${PORT}`));

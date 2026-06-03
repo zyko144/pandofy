@@ -1,6 +1,8 @@
 import React, { useState, useContext } from 'react';
 import { AppContext } from '../context/AppContext';
-import { X, MessageCircle, Mail, ChevronRight, CheckCircle } from 'lucide-react';
+import { X, MessageCircle, Mail, ChevronRight } from 'lucide-react';
+
+const SUPPORT_EMAIL = 'steamappspro@gmail.com';
 
 const CATEGORIES = [
   { id: 'bug', icon: '🐛', label: 'Signaler un bug' },
@@ -18,17 +20,18 @@ export default function SupportModal() {
 
   if (!showSupportModal) return null;
 
-  const handleClose = () => {
-    setShowSupportModal(false);
-    setStep(1); setCategory(null); setMessage('');
-  };
+  const handleClose = () => { setShowSupportModal(false); setStep(1); setCategory(null); setMessage(''); };
 
   const handleSend = () => {
+    if (!message.trim()) return;
     const subject = encodeURIComponent(`[Pandofy Support] ${category?.label || 'Message'}`);
-    const body = encodeURIComponent(
-      `Utilisateur: ${user?.username || 'Non connecté'}\nCatégorie: ${category?.label || 'Non spécifié'}\n\nMessage:\n${message}`
-    );
-    window.open(`mailto:support@pandofy.app?subject=${subject}&body=${body}`, '_blank');
+    const body = encodeURIComponent(`Utilisateur: ${user?.username || 'Non connecté'}\nCatégorie: ${category?.label}\n\nMessage:\n${message}`);
+    const mailto = `mailto:${SUPPORT_EMAIL}?subject=${subject}&body=${body}`;
+    if (window.electronAPI?.openExternalLink) {
+      window.electronAPI.openExternalLink(mailto);
+    } else {
+      window.open(mailto, '_blank');
+    }
     handleClose();
   };
 
@@ -62,7 +65,7 @@ export default function SupportModal() {
             </div>
             <div style={{ marginTop: 20, padding: 14, borderRadius: 10, background: 'rgba(255,102,0,0.05)', border: '1px solid rgba(255,102,0,0.1)', display: 'flex', alignItems: 'center', gap: 10 }}>
               <Mail size={16} color="#FF6600" />
-              <span style={{ fontSize: '0.82rem', color: 'var(--color-text-muted)' }}>support@pandofy.app</span>
+              <span style={{ fontSize: '0.82rem', color: 'var(--color-text-muted)' }}>{SUPPORT_EMAIL}</span>
             </div>
           </>
         ) : (
@@ -72,12 +75,13 @@ export default function SupportModal() {
             </button>
             <div className="modal-form-group">
               <label className="modal-label">Votre message</label>
-              <textarea className="modal-input" placeholder="Décrivez votre problème en détail..." value={message} onChange={e => setMessage(e.target.value)}
+              <textarea className="modal-input" placeholder="Décrivez votre problème en détail..." value={message}
+                onChange={e => setMessage(e.target.value)}
                 style={{ minHeight: 120, resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.5 }} />
             </div>
             <button onClick={handleSend} disabled={!message.trim()} className="btn-primary modal-submit-btn"
               style={{ opacity: !message.trim() ? 0.6 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-              <Mail size={16} /> Ouvrir dans ma messagerie
+              <Mail size={16} /> Envoyer par email
             </button>
           </>
         )}
