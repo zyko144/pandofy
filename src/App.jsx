@@ -8,28 +8,24 @@ import UploadModal from './components/UploadModal';
 import AuthModal from './components/AuthModal';
 import PlaylistModal from './components/PlaylistModal';
 import SupportModal from './components/SupportModal';
-<SupportModal />
 import UpdateModal from './components/UpdateModal';
 import QueuePanel from './components/QueuePanel';
 import MiniPlayer from './components/MiniPlayer';
 import { User as UserIcon, LogIn, RotateCw, Search as SearchIcon, Music, X, Keyboard } from 'lucide-react';
 import { useKeyboardShortcuts, KEYBOARD_SHORTCUTS } from './hooks/useKeyboardShortcuts';
-import { API_BASE } from './utils/api'
+import { API_BASE } from './utils/api';
 
-const AP_URL = API_BASE;
+const API_URL = API_BASE;
 
-// ─── Modal Raccourcis clavier ─────────────────────────────────────────────────
+// ─── Raccourcis clavier Modal ─────────────────────────────────────────────────
 function ShortcutsModal({ onClose }) {
   return (
     <div className="shortcuts-modal-overlay" onClick={onClose}>
       <div className="shortcuts-modal" onClick={e => e.stopPropagation()}>
         <div className="shortcuts-modal-header">
           <span className="shortcuts-modal-title">⌨️ Raccourcis clavier</span>
-          <button
-            onClick={onClose}
-            aria-label="Fermer"
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)', display: 'flex', padding: 4 }}
-          >
+          <button onClick={onClose} aria-label="Fermer"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)', display: 'flex', padding: 4 }}>
             <X size={18} />
           </button>
         </div>
@@ -37,11 +33,7 @@ function ShortcutsModal({ onClose }) {
           <tbody>
             {KEYBOARD_SHORTCUTS.map((s, i) => (
               <tr key={i}>
-                <td>
-                  {s.keys.map((k, j) => (
-                    <span key={j} className="shortcut-key">{k}</span>
-                  ))}
-                </td>
+                <td>{s.keys.map((k, j) => <span key={j} className="shortcut-key">{k}</span>)}</td>
                 <td>{s.description}</td>
               </tr>
             ))}
@@ -52,34 +44,63 @@ function ShortcutsModal({ onClose }) {
   );
 }
 
+// ─── Theme Colors ─────────────────────────────────────────────────────────────
+const THEME_COLORS = [
+  { name: 'Orange', value: '#FF6600' },
+  { name: 'Violet', value: '#8B5CF6' },
+  { name: 'Bleu', value: '#3B82F6' },
+  { name: 'Rouge', value: '#EF4444' },
+  { name: 'Rose', value: '#EC4899' },
+  { name: 'Vert', value: '#10B981' },
+  { name: 'Cyan', value: '#06B6D4' },
+  { name: 'Or', value: '#F59E0B' },
+];
+
+function ThemePicker({ onClose }) {
+  const currentTheme = localStorage.getItem('pandofy_theme_color') || '#FF6600';
+  const applyTheme = (color) => {
+    localStorage.setItem('pandofy_theme_color', color);
+    document.documentElement.style.setProperty('--color-primary', color);
+    document.documentElement.style.setProperty('--color-primary-hover', color + 'CC');
+    document.documentElement.style.setProperty('--color-primary-glow', color + '66');
+    onClose?.();
+  };
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 360 }}>
+        <button className="modal-close-btn" onClick={onClose}><X size={20} /></button>
+        <h2 className="modal-title">🎨 Thème de couleur</h2>
+        <p style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem', marginBottom: 20 }}>
+          Choisissez la couleur principale de l'interface
+        </p>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+          {THEME_COLORS.map(tc => (
+            <button key={tc.value} onClick={() => applyTheme(tc.value)}
+              style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, padding: '12px 8px', borderRadius: 12, border: `2px solid ${currentTheme === tc.value ? tc.value : 'rgba(255,255,255,0.08)'}`, background: 'rgba(255,255,255,0.03)', cursor: 'pointer', transition: 'all 0.15s' }}>
+              <div style={{ width: 32, height: 32, borderRadius: '50%', background: tc.value, boxShadow: `0 0 12px ${tc.value}66` }} />
+              <span style={{ color: '#fff', fontSize: '0.72rem', fontWeight: 600 }}>{tc.name}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Composant principal ──────────────────────────────────────────────────────
 function AppContent() {
   const {
-    user,
-    setShowAuthModal,
-    activeTab,
-    setActiveTab,
-    activePlaylistId,
-    toastMessage,
-    refreshData,
-    playTrack,
-    tracks,
-    currentTrack,
-    isPlaying,
-    togglePlay,
-    nextTrack,
-    prevTrack,
-    setVolume,
-    setMuted,
-    muted,
-    toggleLike,
+    user, setShowAuthModal, activeTab, setActiveTab,
+    activePlaylistId, toastMessage, refreshData,
+    playTrack, tracks, currentTrack, isPlaying,
+    togglePlay, nextTrack, prevTrack, setVolume,
+    setMuted, muted, toggleLike,
   } = useContext(AppContext);
 
   const [isSyncing, setIsSyncing] = useState(false);
   const [showQueue, setShowQueue] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
-
-  // Search bar state
+  const [showThemePicker, setShowThemePicker] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState({ tracks: [], users: [] });
   const [showDropdown, setShowDropdown] = useState(false);
@@ -88,12 +109,15 @@ function AppContent() {
   const searchInputRef = useRef(null);
   const debounceRef = useRef(null);
 
-  // MiniPlayer: show when a track is playing and NOT on the main player area
-  // For simplicity, we show MiniPlayer only in views that don't have the full player visible
-  // (the full bottom player is always visible, so mini player is hidden by default)
-  // Actually we hide MiniPlayer — the bottom player serves the same purpose.
-  // Keep it available but only show in specific tab contexts if needed.
-  const showMiniPlayer = false; // Can be enabled per tab if needed
+  // Apply saved theme on mount
+  useEffect(() => {
+    const savedColor = localStorage.getItem('pandofy_theme_color');
+    if (savedColor && savedColor !== '#FF6600') {
+      document.documentElement.style.setProperty('--color-primary', savedColor);
+      document.documentElement.style.setProperty('--color-primary-hover', savedColor + 'CC');
+      document.documentElement.style.setProperty('--color-primary-glow', savedColor + '66');
+    }
+  }, []);
 
   const handleSync = async () => {
     if (isSyncing) return;
@@ -102,32 +126,14 @@ function AppContent() {
     setTimeout(() => setIsSyncing(false), 800);
   };
 
-  // Focus search shortcut handler
-  const focusSearch = useCallback(() => {
-    searchInputRef.current?.focus();
-  }, []);
+  const focusSearch = useCallback(() => searchInputRef.current?.focus(), []);
 
-  // Keyboard shortcuts hook
-  useKeyboardShortcuts({
-    togglePlay,
-    nextTrack,
-    prevTrack,
-    setVolume,
-    setMuted,
-    muted,
-    toggleLike,
-    currentTrack,
-    focusSearch,
-  });
+  useKeyboardShortcuts({ togglePlay, nextTrack, prevTrack, setVolume, setMuted, muted, toggleLike, currentTrack, focusSearch });
 
-  // Debounced search
+  // Debounced global search
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    if (!searchQuery.trim()) {
-      setSearchResults({ tracks: [], users: [] });
-      setShowDropdown(false);
-      return;
-    }
+    if (!searchQuery.trim()) { setSearchResults({ tracks: [], users: [] }); setShowDropdown(false); return; }
     debounceRef.current = setTimeout(async () => {
       setIsSearching(true);
       try {
@@ -139,160 +145,86 @@ function AppContent() {
         const usersData = usersRes.ok ? await usersRes.json() : [];
         setSearchResults({ tracks: tracksData.slice(0, 5), users: usersData.slice(0, 3) });
         setShowDropdown(true);
-      } catch (e) {
-        console.error('Search error:', e);
-      } finally {
-        setIsSearching(false);
-      }
+      } catch (e) { console.error('Search error:', e); }
+      finally { setIsSearching(false); }
     }, 300);
     return () => clearTimeout(debounceRef.current);
   }, [searchQuery]);
 
-  // Close dropdown on outside click or Escape
   useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (searchRef.current && !searchRef.current.contains(e.target)) {
-        setShowDropdown(false);
-      }
-    };
-    const handleKeyDown = (e) => {
-      if (e.key === 'Escape') {
-        setShowDropdown(false);
-        setShowShortcuts(false);
-      }
-    };
+    const handleClickOutside = (e) => { if (searchRef.current && !searchRef.current.contains(e.target)) setShowDropdown(false); };
+    const handleKeyDown = (e) => { if (e.key === 'Escape') { setShowDropdown(false); setShowShortcuts(false); } };
     document.addEventListener('mousedown', handleClickOutside);
     document.addEventListener('keydown', handleKeyDown);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('keydown', handleKeyDown);
-    };
+    return () => { document.removeEventListener('mousedown', handleClickOutside); document.removeEventListener('keydown', handleKeyDown); };
   }, []);
 
-  const handleSearchTrackClick = (track) => {
-    playTrack(track, searchResults.tracks);
-    setSearchQuery('');
-    setShowDropdown(false);
-  };
-
-  const handleSearchUserClick = (username) => {
-    setActiveTab('account');
-    setSearchQuery('');
-    setShowDropdown(false);
-  };
+  const handleSearchTrackClick = (track) => { playTrack(track, searchResults.tracks); setSearchQuery(''); setShowDropdown(false); };
+  const handleSearchUserClick = () => { setActiveTab('account'); setSearchQuery(''); setShowDropdown(false); };
 
   const getHeaderTitle = () => {
-    if (activePlaylistId) {
-      return activePlaylistId === 'liked' ? 'Titres Likés' : 'Playlist';
-    }
+    if (activePlaylistId) return activePlaylistId === 'liked' ? 'Titres Likés' : 'Playlist';
     switch (activeTab) {
-      case 'home': return 'Accueil';
-      case 'search': return 'Rechercher';
-      case 'library': return 'Bibliothèque';
-      case 'premium': return 'Espace Premium';
-      case 'account': return 'Mon Compte';
-      default: return 'Pandofy';
+      case 'home': return 'Accueil'; case 'search': return 'Rechercher';
+      case 'library': return 'Bibliothèque'; case 'premium': return 'Espace Premium';
+      case 'account': return 'Mon Compte'; default: return 'Pandofy';
     }
-  };
-
-  // Generate dynamic profile color style overrides
-  const getCustomThemeInlineStyle = () => {
-    if (user && user.profileColor) {
-      return {
-        '--color-primary': user.profileColor,
-        '--color-primary-hover': user.profileColor + 'CC',
-        '--color-primary-glow': user.profileColor + '66'
-      };
-    }
-    return {};
   };
 
   const formatBadge = (format) => {
     if (!format) return null;
-    const colors = { FLAC: '#FF8800', WAV: '#2196F3', OGG: '#9C27B0', M4A: '#4CAF50', MP3: '#888' };
-    return (
-      <span style={{
-        fontSize: '0.6rem', fontWeight: 700, padding: '1px 5px', borderRadius: 4,
-        backgroundColor: colors[format] || '#888', color: '#fff', letterSpacing: '0.05em',
-        flexShrink: 0
-      }}>
-        {format}
-      </span>
-    );
+    const colors = { FLAC: '#FF8800', WAV: '#2196F3', OGG: '#9C27B0', M4A: '#4CAF50', MP3: '#888', YouTube: '#FF0000' };
+    return <span style={{ fontSize: '0.6rem', fontWeight: 700, padding: '1px 5px', borderRadius: 4, background: (colors[format] || '#888') + '22', color: colors[format] || '#888', border: `1px solid ${(colors[format] || '#888')}44` }}>{format}</span>;
   };
 
+  const appStyle = user?.profileColor ? {
+    '--color-primary': user.profileColor,
+    '--color-primary-hover': user.profileColor + 'CC',
+    '--color-primary-glow': user.profileColor + '66'
+  } : {};
+
   return (
-    <div className="app-container" style={getCustomThemeInlineStyle()}>
-      {/* Intro Animation Screen */}
+    <div className="app-shell" style={appStyle}>
       <IntroSplash />
 
-      {/* Floating Incoming simulated e-mail toast alert */}
+      {/* Toast notification */}
       {toastMessage && (
-        <div className="email-toast">
-          <div style={{
-            width: 8,
-            height: 8,
-            borderRadius: '50%',
-            backgroundColor: 'var(--color-primary)',
-            animation: 'glowPulse 1s infinite alternate'
-          }}></div>
-          <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>{toastMessage}</span>
+        <div style={{ position: 'fixed', top: 20, right: 20, zIndex: 99999, background: 'rgba(30,30,30,0.95)', border: '1px solid var(--color-primary)', borderRadius: 12, padding: '12px 20px', color: '#fff', fontWeight: 600, fontSize: '0.9rem', backdropFilter: 'blur(8px)', animation: 'slideUp 0.3s ease', boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}>
+          {toastMessage}
         </div>
       )}
 
-      {/* Left Sidebar */}
       <Sidebar />
 
-      {/* Central Content Area */}
       <main className="main-content">
         <header className="main-header">
           <h2 className="main-view-title">{getHeaderTitle()}</h2>
-
           <div className="header-actions">
-            {/* Global Search Bar */}
+
+            {/* Global Search */}
             <div className="header-search-wrapper" ref={searchRef}>
               <div className="header-search-bar">
                 <SearchIcon size={15} className="header-search-icon" />
-                <input
-                  id="global-search-input"
-                  ref={searchInputRef}
-                  type="text"
-                  placeholder="Rechercher... (Ctrl+F)"
-                  className="header-search-input"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                <input id="global-search-input" ref={searchInputRef} type="text"
+                  placeholder="Rechercher... (Ctrl+F)" className="header-search-input"
+                  value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
                   onFocus={() => searchResults.tracks.length > 0 && setShowDropdown(true)}
-                  autoComplete="off"
-                />
+                  autoComplete="off" />
                 {searchQuery && (
-                  <button
-                    className="header-search-clear"
-                    onClick={() => { setSearchQuery(''); setShowDropdown(false); }}
-                    title="Effacer"
-                  >
+                  <button className="header-search-clear" onClick={() => { setSearchQuery(''); setShowDropdown(false); }} title="Effacer">
                     <X size={13} />
                   </button>
                 )}
               </div>
-
-              {/* Search Dropdown */}
               {showDropdown && (searchResults.tracks.length > 0 || searchResults.users.length > 0) && (
                 <div className="search-dropdown">
                   {searchResults.tracks.length > 0 && (
                     <div className="search-dropdown-section">
                       <div className="search-dropdown-label">Morceaux</div>
                       {searchResults.tracks.map(track => (
-                        <div
-                          key={track.id}
-                          className="search-dropdown-item"
-                          onClick={() => handleSearchTrackClick(track)}
-                        >
-                          <img
-                            src={track.coverUrl}
-                            alt=""
-                            className="search-dropdown-cover"
-                            onError={(e) => e.target.src = 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=60&auto=format&fit=crop&q=60'}
-                          />
+                        <div key={track.id} className="search-dropdown-item" onClick={() => handleSearchTrackClick(track)}>
+                          <img src={track.coverUrl} alt="" className="search-dropdown-cover" loading="lazy"
+                            onError={e => e.target.src = 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=60&auto=format&fit=crop&q=60'} />
                           <div className="search-dropdown-meta">
                             <div className="search-dropdown-title">{track.title}</div>
                             <div className="search-dropdown-artist">{track.artistName}</div>
@@ -306,17 +238,8 @@ function AppContent() {
                     <div className="search-dropdown-section">
                       <div className="search-dropdown-label">Artistes</div>
                       {searchResults.users.map(u => (
-                        <div
-                          key={u.username}
-                          className="search-dropdown-item"
-                          onClick={() => handleSearchUserClick(u.username)}
-                        >
-                          <div style={{
-                            width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
-                            backgroundColor: u.profileColor || 'var(--color-primary)',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            fontWeight: 700, fontSize: '1rem', color: '#000'
-                          }}>
+                        <div key={u.username} className="search-dropdown-item" onClick={() => handleSearchUserClick(u.username)}>
+                          <div style={{ width: 36, height: 36, borderRadius: '50%', flexShrink: 0, backgroundColor: u.profileColor || 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '1rem', color: '#000' }}>
                             {(u.displayName || u.username).charAt(0).toUpperCase()}
                           </div>
                           <div className="search-dropdown-meta">
@@ -330,123 +253,68 @@ function AppContent() {
                 </div>
               )}
               {showDropdown && isSearching && (
-                <div className="search-dropdown" style={{ padding: '12px', textAlign: 'center', color: 'var(--color-text-muted)' }}>
-                  Recherche en cours...
-                </div>
+                <div className="search-dropdown" style={{ padding: 12, textAlign: 'center', color: 'var(--color-text-muted)' }}>Recherche...</div>
               )}
             </div>
 
-            {/* Raccourcis clavier button */}
-            <button
-              onClick={() => setShowShortcuts(true)}
-              title="Raccourcis clavier"
-              aria-label="Voir les raccourcis clavier"
-              style={{
-                background: 'none', border: '1px solid var(--color-border)',
-                color: 'var(--color-text-muted)', borderRadius: 8,
-                padding: '6px 8px', cursor: 'pointer', display: 'flex', alignItems: 'center',
-                transition: 'all 0.2s ease'
-              }}
-              onMouseEnter={e => { e.currentTarget.style.color = 'var(--color-text-main)'; e.currentTarget.style.borderColor = 'var(--color-primary)'; }}
-              onMouseLeave={e => { e.currentTarget.style.color = 'var(--color-text-muted)'; e.currentTarget.style.borderColor = 'var(--color-border)'; }}
-            >
+            {/* Theme color picker button */}
+            <button onClick={() => setShowThemePicker(true)} title="Changer le thème"
+              style={{ background: 'none', border: '1px solid var(--color-border)', color: 'var(--color-primary)', borderRadius: 8, padding: '6px 8px', cursor: 'pointer', display: 'flex', alignItems: 'center', fontSize: '1rem' }}>
+              🎨
+            </button>
+
+            {/* Keyboard shortcuts */}
+            <button onClick={() => setShowShortcuts(true)} title="Raccourcis clavier"
+              style={{ background: 'none', border: '1px solid var(--color-border)', color: 'var(--color-text-muted)', borderRadius: 8, padding: '6px 8px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
               <Keyboard size={15} />
             </button>
 
-            {/* Sync / Refresh Button */}
-            <button
-              className={`btn-sync ${isSyncing ? 'spinning' : ''}`}
-              onClick={handleSync}
-              title="Actualiser les données"
-              aria-label="Actualiser les données"
-            >
+            {/* Sync */}
+            <button className={`btn-sync ${isSyncing ? 'spinning' : ''}`} onClick={handleSync} title="Actualiser">
               <RotateCw size={18} />
             </button>
 
-            {/* User Profile Badge or Login Button */}
+            {/* User / Login */}
             {user ? (
-              <div
-                className="user-badge"
-                onClick={() => setActiveTab('account')}
-                style={user.profileColor ? { borderColor: user.profileColor } : {}}
-              >
-                <div style={{
-                  width: 24,
-                  height: 24,
-                  borderRadius: '50%',
-                  backgroundColor: user.profileColor || 'var(--color-primary)',
-                  color: '#000',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontWeight: 700,
-                  fontSize: '0.8rem'
-                }}>
+              <div className="user-badge" onClick={() => setActiveTab('account')} style={user.profileColor ? { borderColor: user.profileColor } : {}}>
+                <div style={{ width: 24, height: 24, borderRadius: '50%', backgroundColor: user.profileColor || 'var(--color-primary)', color: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.8rem' }}>
                   {user.displayName.charAt(0).toUpperCase()}
                 </div>
                 <span>{user.displayName}</span>
               </div>
             ) : (
-              <button
-                className="btn-primary"
-                style={{ padding: '8px 18px', fontSize: '0.85rem' }}
-                onClick={() => setShowAuthModal(true)}
-              >
-                <LogIn size={16} />
-                Se connecter
+              <button className="btn-primary" style={{ padding: '8px 18px', fontSize: '0.85rem' }} onClick={() => setShowAuthModal(true)}>
+                <LogIn size={16} /> Se connecter
               </button>
             )}
 
-            {/* Window Controls (Electron only) */}
+            {/* Window controls (Electron) */}
             {window.electronAPI && (
               <div className="window-controls">
-                <button
-                  className="win-btn win-minimize"
-                  onClick={() => window.electronAPI.minimize()}
-                  title="Réduire"
-                  aria-label="Réduire"
-                />
-                <button
-                  className="win-btn win-fullscreen"
-                  onClick={() => window.electronAPI.toggleFullscreen()}
-                  title="Plein écran"
-                  aria-label="Plein écran"
-                />
-                <button
-                  className="win-btn win-close"
-                  onClick={() => window.electronAPI.close()}
-                  title="Fermer"
-                  aria-label="Fermer"
-                />
+                <button className="win-btn win-minimize" onClick={() => window.electronAPI.minimize()} title="Réduire" />
+                <button className="win-btn win-fullscreen" onClick={() => window.electronAPI.toggleFullscreen()} title="Plein écran" />
+                <button className="win-btn win-close" onClick={() => window.electronAPI.close()} title="Fermer" />
               </div>
             )}
           </div>
         </header>
 
-        {/* Dynamic Views wrapper */}
         <Views />
       </main>
 
-      {/* Bottom Audio Player controls */}
       <Player onToggleQueue={() => setShowQueue(q => !q)} showQueue={showQueue} />
-
-      {/* Queue Panel (slide-in from right) */}
       <QueuePanel isOpen={showQueue} onClose={() => setShowQueue(false)} />
+      <MiniPlayer visible={false} onExpand={() => {}} />
 
-      {/* Mini Player (when track is active and user scrolls away) */}
-      <MiniPlayer
-        visible={showMiniPlayer && !!currentTrack}
-        onExpand={() => {/* no-op: full player is always visible */}}
-      />
-
-      {/* Overlays / Modals */}
+      {/* ─── Modals ─── */}
       <UploadModal />
       <AuthModal />
       <PlaylistModal />
+      <SupportModal />
       <UpdateModal />
 
-      {/* Keyboard Shortcuts Modal */}
       {showShortcuts && <ShortcutsModal onClose={() => setShowShortcuts(false)} />}
+      {showThemePicker && <ThemePicker onClose={() => setShowThemePicker(false)} />}
     </div>
   );
 }
