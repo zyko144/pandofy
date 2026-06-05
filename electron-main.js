@@ -53,7 +53,7 @@ if (!gotTheLock) {
       width: 1280, height: 820, minWidth: 900, minHeight: 600,
       title: 'Pandofy', frame: false, show: false,
       backgroundColor: '#070707',
-      icon: path.join(__dirname, 'public', 'favicon.svg'),
+      icon: path.join(__dirname, 'public', 'icon.png'),
       webPreferences: {
         nodeIntegration: false, contextIsolation: true,
         webSecurity: false, backgroundThrottling: false,

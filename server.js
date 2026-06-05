@@ -453,8 +453,10 @@ app.get('/api/admin/clear-tracks', async (req, res) => {
 // ─── VERSION ─────────────────────────────────────────────────
 app.get('/api/version', (req, res) => {
   res.json({
-    version: '2.2.2',
+    version: '2.2.3',
     changelog: [
+      '🎨 Icône d\'application officielle personnalisée (croche orange 3D) sous Windows',
+      '🏷️ Application renommée en pandofy (minuscules)',
       '📍 Logo de démarrage recentré mathématiquement',
       '⚡ Latence audio de démarrage totalement éliminée',
       '🎵 Nouveau Logo de démarrage (croche orange unique) sans cercle',
