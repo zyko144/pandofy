@@ -3,6 +3,7 @@ import pkg from 'electron-updater';
 const { autoUpdater } = pkg;
 import path from 'path';
 import http from 'http';
+import net from 'net';
 import { fileURLToPath } from 'url';
 
 // Optimize background performance & prevent Chromium low-power CPU throttling
@@ -12,12 +13,26 @@ app.commandLine.appendSwitch('disable-backgrounding-occluded-windows');
 
 const gotTheLock = app.requestSingleInstanceLock();
 
-if (!gotTheLock) { app.quit(); } else {
+// Helper to find a free port dynamically
+function getFreePort(startPort) {
+  return new Promise((resolve) => {
+    const server = net.createServer();
+    server.listen(startPort, () => {
+      const { port } = server.address();
+      server.close(() => resolve(port));
+    });
+    server.on('error', () => {
+      resolve(getFreePort(startPort + 1));
+    });
+  });
+}
+
+if (!gotTheLock) {
+  app.quit();
+} else {
   const __filename = fileURLToPath(import.meta.url);
   const __dirname = path.dirname(__filename);
-  const PORT = process.env.PORT || 3001;
-
-  import('./server.js').catch(err => console.error('[SERVER]', err));
+  let PORT = 3001;
 
   // Wait for local server (serves both API + static files)
   function waitForServer(retries = 40, interval = 300) {
@@ -96,6 +111,15 @@ if (!gotTheLock) { app.quit(); } else {
     } catch (err) {
       console.warn('Cache clear error:', err);
     }
+    
+    // Dynamically find a free port starting from 3001
+    PORT = await getFreePort(3001);
+    process.env.PORT = PORT;
+    console.log(`[PANDOFY] Binding to free port: ${PORT}`);
+
+    // Import and start local server
+    import('./server.js').catch(err => console.error('[SERVER]', err));
+
     await waitForServer();
     createWindow();
     setTimeout(() => autoUpdater.checkForUpdatesAndNotify().catch(() => {}), 8000);

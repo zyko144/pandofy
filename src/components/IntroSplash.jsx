@@ -28,10 +28,6 @@ export default function IntroSplash() {
   return (
     <div className={`splash-container ${faded ? 'fade-out' : ''}`}>
       <div className="logo-note-wrapper">
-        <div className="wave-circle"></div>
-        <div className="wave-circle"></div>
-        <div className="wave-circle"></div>
-        
         {/* SVG Custom Cinematic 3D Orange Logo */}
         <svg className="logo-note-3d" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
           {/* Note Head */}

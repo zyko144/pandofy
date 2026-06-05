@@ -70,12 +70,27 @@ export default function Player({ onToggleQueue, showQueue }) {
               origin: window.location.origin
             },
             events: {
-              onReady: () => {
+              onReady: (e) => {
                 setYtReady(true);
+                try {
+                  if (typeof e.target.setVolume === 'function') {
+                    e.target.setVolume(muted ? 0 : Math.round(volume * 100));
+                  }
+                  if (!muted && typeof e.target.unMute === 'function') {
+                    e.target.unMute();
+                  }
+                } catch (err) {}
               },
               onStateChange: (event) => {
                 if (event.data === 0) {
                   nextTrack();
+                } else if (event.data === 1) { // PLAYING
+                  try {
+                    if (typeof event.target.unMute === 'function') event.target.unMute();
+                    if (typeof event.target.setVolume === 'function') {
+                      event.target.setVolume(muted ? 0 : Math.round(volume * 100));
+                    }
+                  } catch (err) {}
                 }
               }
             }
