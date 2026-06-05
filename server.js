@@ -455,12 +455,13 @@ app.get('/api/version', (req, res) => {
   res.json({
     version: '2.2.0',
     changelog: [
-      '🎵 Import YouTube fonctionnel',
-      '📦 Upload jusqu\'à 10 sons simultanément',
-      '⚡ Fluidité optimale — latence supprimée',
-      '🔒 Sécurité v2.2.0 — upgrade global',
-      '💾 Données persistantes PostgreSQL + Cloudinary',
-      '🔄 Actualisation instantanée sans délai',
+      '🎵 Import YouTube et Lecture optimisés',
+      '✨ Animation épurée et Logo Cinématique au démarrage',
+      '⚡ Fluidité extrême et réduction de la latence (optimisé pour tous les PC)',
+      '🎨 Thèmes d\'accentuation dynamiques sans nuances orange résiduelles',
+      '🛠️ Nouveau Help Center interactif avec FAQ double colonne',
+      '📊 Onglets inspirés de Spotify : Découverte, Tendances, Historique, Paramètres',
+      '🛡️ Stabilité renforcée : Résolution des conflits de ports au démarrage',
     ]
   });
 });

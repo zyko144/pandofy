@@ -6,7 +6,24 @@
 .modal-overlay { backdrop-filter: none !important; }
 
 /* GPU acceleration */
-.player, .sidebar, .main-content { transform: translateZ(0); will-change: auto; }
+.player, .sidebar, .main-content, .scrollable {
+  transform: translate3d(0, 0, 0);
+  will-change: transform;
+}
+
+.track-item {
+  transform: translate3d(0, 0, 0);
+  will-change: transform, opacity;
+  content-visibility: auto;
+  contain-intrinsic-size: 56px; /* Hauteur approximative d'une ligne */
+}
+
+.track-card {
+  transform: translate3d(0, 0, 0);
+  will-change: transform, opacity;
+  content-visibility: auto;
+  contain-intrinsic-size: 200px;
+}
 
 /* Smooth instant scrolling */
 .scrollable, .search-container, .playlists-container, .queue-panel {
@@ -22,7 +39,7 @@
 
 /* Faster transitions */
 .sidebar-menu-item { transition: background-color 0.1s ease, color 0.1s ease !important; }
-.track-card, .track-item { transition: background-color 0.08s ease !important; contain: layout style; }
+.track-card, .track-item { transition: background-color 0.08s ease !important; }
 button { transition: opacity 0.08s ease !important; }
 button:active { opacity: 0.75; transform: scale(0.97); }
 
