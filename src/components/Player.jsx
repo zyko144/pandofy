@@ -34,8 +34,9 @@ export default function Player({ onToggleQueue, showQueue }) {
 
   const getYtId = (url) => {
     if (!url) return null;
-    const raw = url.replace('yt:', '');
-    const m = raw.match(/(?:v=|youtu\.be\/)([\w-]{11})/);
+    const raw = url.replace('yt:', '').trim();
+    if (/^[\w-]{11}$/.test(raw)) return raw;
+    const m = raw.match(/(?:v=|youtu\.be\/|embed\/|v\/)([\w-]{11})/);
     return m ? m[1] : null;
   };
   const ytId = isYouTube ? getYtId(currentTrack?.audioUrl) : null;

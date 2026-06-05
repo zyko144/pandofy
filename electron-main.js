@@ -67,8 +67,11 @@ if (!gotTheLock) {
     // Allow all origins — fix YouTube iframes
     session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
       const h = { ...details.responseHeaders };
-      delete h['x-frame-options']; delete h['X-Frame-Options'];
-      h['Content-Security-Policy'] = ["default-src 'self' 'unsafe-inline' 'unsafe-eval' https: http://localhost:* data: blob: ws: wss:"];
+      delete h['x-frame-options'];
+      delete h['X-Frame-Options'];
+      delete h['content-security-policy'];
+      delete h['Content-Security-Policy'];
+      h['Access-Control-Allow-Origin'] = ['*'];
       h['Permissions-Policy'] = ['autoplay=*, camera=(), microphone=()'];
       callback({ responseHeaders: h });
     });
