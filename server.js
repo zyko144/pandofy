@@ -785,7 +785,14 @@ import { createRequire } from 'module';
 const require2 = createRequire(import.meta.url);
 const distPath = path.join(__dirname, 'dist');
 if (fs.existsSync(distPath)) {
-  app.use(express.static(distPath));
+  // Set headers to disable caching on index.html and static files to avoid Electron loading outdated UI
+  app.use((req, res, next) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    next();
+  });
+  app.use(express.static(distPath, { etag: false, lastModified: false }));
   app.use((req, res, next) => {
     if (req.path.startsWith('/api') || req.path.startsWith('/uploads')) return next();
     const indexFile = path.join(distPath, 'index.html');
