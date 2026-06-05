@@ -40,12 +40,44 @@ export default function UploadModal() {
     setLocalTracks(prev => prev.map(t => t.id === id ? { ...t, [field]: value } : t));
   };
 
-  const handleAudioFile = (id, e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    updateTrack(id, 'audioFile', file);
-    const name = file.name.replace(/\.[^.]+$/, '');
-    setLocalTracks(prev => prev.map(t => t.id === id ? { ...t, audioFile: file, title: t.title || name } : t));
+  const handleAudioFiles = (id, files) => {
+    if (!files || files.length === 0) return;
+    const fileList = Array.from(files);
+
+    setLocalTracks(prev => {
+      let nextTracks = [...prev];
+      const targetIdx = nextTracks.findIndex(t => t.id === id);
+      if (targetIdx === -1) return prev;
+
+      const firstFile = fileList[0];
+      const firstName = firstFile.name.replace(/\.[^.]+$/, '');
+      nextTracks[targetIdx] = {
+        ...nextTracks[targetIdx],
+        audioFile: firstFile,
+        title: nextTracks[targetIdx].title || firstName
+      };
+
+      const remainingSlots = 10 - nextTracks.length;
+      const filesToAdd = fileList.slice(1, 1 + remainingSlots);
+
+      filesToAdd.forEach(file => {
+        const name = file.name.replace(/\.[^.]+$/, '');
+        nextTracks.push({
+          id: Date.now() + Math.random(),
+          audioFile: file,
+          title: name,
+          genre: nextTracks[targetIdx].genre || 'Hip-Hop',
+          coverFile: null,
+          coverPreview: '',
+          youtubeUrl: '',
+          status: 'idle',
+          progress: 0,
+          error: ''
+        });
+      });
+
+      return nextTracks;
+    });
   };
 
   const handleCoverFile = (id, e) => {
@@ -187,8 +219,14 @@ export default function UploadModal() {
                     {/* Audio file or YouTube URL */}
                     {mode === 'file' ? (
                       <div style={{ marginBottom: 10 }}>
-                        <input ref={el => audioRefs.current[track.id] = el} type="file" accept="audio/mpeg,audio/flac,audio/wav,audio/ogg,audio/x-m4a" style={{ display: 'none' }} onChange={e => handleAudioFile(track.id, e)} />
+                        <input ref={el => audioRefs.current[track.id] = el} type="file" multiple accept="audio/mpeg,audio/flac,audio/wav,audio/ogg,audio/x-m4a" style={{ display: 'none' }} onChange={e => handleAudioFiles(track.id, e.target.files)} />
                         <div onClick={() => audioRefs.current[track.id]?.click()}
+                          onDragOver={e => { e.preventDefault(); e.stopPropagation(); }}
+                          onDrop={e => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleAudioFiles(track.id, e.dataTransfer.files);
+                          }}
                           style={{ border: `2px dashed ${track.audioFile ? 'var(--color-primary)' : 'rgba(255,255,255,0.1)'}`, borderRadius: 8, padding: '12px', textAlign: 'center', cursor: 'pointer', background: track.audioFile ? 'var(--color-primary-glow)' : 'transparent' }}>
                           {track.audioFile ? (
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
@@ -197,7 +235,7 @@ export default function UploadModal() {
                             </div>
                           ) : (
                             <div style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>
-                              <Upload size={18} style={{ marginBottom: 4 }} /><br/>Sélectionner un fichier audio
+                              <Upload size={18} style={{ marginBottom: 4 }} /><br/>Glisser-déposer ou cliquer pour ajouter des MP3
                             </div>
                           )}
                         </div>
