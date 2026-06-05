@@ -109,6 +109,7 @@ export default function Player({ onToggleQueue, showQueue }) {
     try {
       if (isPlaying) {
         ytPlayerRef.current.loadVideoById(ytId);
+        if (typeof ytPlayerRef.current.unMute === 'function') ytPlayerRef.current.unMute();
       } else {
         ytPlayerRef.current.cueVideoById(ytId);
       }
@@ -123,6 +124,7 @@ export default function Player({ onToggleQueue, showQueue }) {
     if (!isYouTube || !ytReady || !ytPlayerRef.current) return;
     try {
       if (isPlaying) {
+        if (typeof ytPlayerRef.current.unMute === 'function') ytPlayerRef.current.unMute();
         if (typeof ytPlayerRef.current.playVideo === 'function') ytPlayerRef.current.playVideo();
       } else {
         if (typeof ytPlayerRef.current.pauseVideo === 'function') ytPlayerRef.current.pauseVideo();
@@ -138,6 +140,9 @@ export default function Player({ onToggleQueue, showQueue }) {
     try {
       if (typeof ytPlayerRef.current.setVolume === 'function') {
         ytPlayerRef.current.setVolume(muted ? 0 : Math.round(volume * 100));
+      }
+      if (!muted && volume > 0 && typeof ytPlayerRef.current.unMute === 'function') {
+        ytPlayerRef.current.unMute();
       }
     } catch (err) {
       console.error("YouTube volume sync error:", err);
@@ -329,11 +334,11 @@ export default function Player({ onToggleQueue, showQueue }) {
 
   return (
     <footer className="player">
-      {/* Hidden container for YouTube Player API */}
       {/* Off-screen container for YouTube Player API */}
-      <div style={{ position: 'fixed', top: -1000, left: -1000, width: 300, height: 200, pointerEvents: 'none', zIndex: -1000 }}>
-        <div id="yt-player-container" />
-      </div>
+      <div 
+        style={{ position: 'fixed', top: -1000, left: -1000, width: 300, height: 200, pointerEvents: 'none', zIndex: -1000 }}
+        dangerouslySetInnerHTML={{ __html: '<div id="yt-player-container"></div>' }}
+      />
 
       {/* Left: Track info */}
       <div className="player-track-info">
