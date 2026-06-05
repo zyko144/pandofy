@@ -91,6 +91,11 @@ if (!gotTheLock) { app.quit(); } else {
   app.on('second-instance', () => { const w = BrowserWindow.getAllWindows()[0]; if(w) { if(w.isMinimized()) w.restore(); w.focus(); } });
 
   app.whenReady().then(async () => {
+    try {
+      await session.defaultSession.clearCache();
+    } catch (err) {
+      console.warn('Cache clear error:', err);
+    }
     await waitForServer();
     createWindow();
     setTimeout(() => autoUpdater.checkForUpdatesAndNotify().catch(() => {}), 8000);
