@@ -91,6 +91,12 @@ export const AppProvider = ({ children }) => {
   const sourceRef = useRef(null);
   const isAudioContextInitializedRef = useRef(false);
 
+  // Set preload=auto on mount
+  useEffect(() => {
+    if (audioRef.current) audioRef.current.preload = 'auto';
+    if (audioBRef.current) audioBRef.current.preload = 'auto';
+  }, []);
+
   // Persist preferences to localStorage
   useEffect(() => { localStorage.setItem('pandofy_shuffle', isShuffle); }, [isShuffle]);
   useEffect(() => { localStorage.setItem('pandofy_repeat', repeatMode); }, [repeatMode]);
@@ -312,40 +318,69 @@ export const AppProvider = ({ children }) => {
     if (!currentTrack) return;
 
     const audio = audioRef.current;
-    audio.currentTime = 0;
-    setCurrentTime(0);
 
     // Build full URL — relative paths (ex: /uploads/...) need API_BASE prefix
     const isYT = currentTrack.audioUrl?.startsWith('yt:');
     if (isYT) {
       audio.src = '';
       audio.load();
+      audio.currentTime = 0;
+      setCurrentTime(0);
       return;
     }
+
     const fullUrl = currentTrack.audioUrl.startsWith('/')
       ? API_URL + currentTrack.audioUrl
       : currentTrack.audioUrl;
-    audio.src = fullUrl;
 
-    // CORS config
-    if (fullUrl.startsWith(API_URL)) {
-      audio.crossOrigin = 'anonymous';
+    // Only assign and load if the source URL has actually changed.
+    // Setting .src when it is already set causes audio stream disruption and latency.
+    if (audio.src !== fullUrl) {
+      audio.src = fullUrl;
+      audio.preload = 'auto';
+
+      // CORS config
+      if (fullUrl.startsWith(API_URL)) {
+        audio.crossOrigin = 'anonymous';
+      } else {
+        audio.removeAttribute('crossorigin');
+      }
+
+      audio.load();
+      audio.currentTime = 0;
+      setCurrentTime(0);
     } else {
-      audio.removeAttribute('crossorigin');
+      // If it's the same URL, just restart it
+      audio.currentTime = 0;
+      setCurrentTime(0);
     }
 
-    audio.load();
-
     if (isPlaying) {
-      audio.play().catch(e => {
-        console.log("Autoplay prevention:", e);
-        setIsPlaying(false);
-      });
+      // Ensure context is running before executing play
+      if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
+        audioContextRef.current.resume().then(() => {
+          audio.play().catch(e => {
+            console.log("Autoplay prevention:", e);
+            setIsPlaying(false);
+          });
+        });
+      } else {
+        audio.play().catch(e => {
+          console.log("Autoplay prevention:", e);
+          setIsPlaying(false);
+        });
+      }
     }
   }, [currentTrack]);
 
   const initAudioCtx = () => {
-    if (isAudioContextInitializedRef.current) return;
+    if (isAudioContextInitializedRef.current) {
+      // If initialized but suspended, resume it
+      if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
+        audioContextRef.current.resume().catch(e => console.warn(e));
+      }
+      return;
+    }
     try {
       const AudioContextClass = window.AudioContext || window.webkitAudioContext;
       const ctx = new AudioContextClass();
@@ -362,6 +397,10 @@ export const AppProvider = ({ children }) => {
       sourceRef.current = source;
       isAudioContextInitializedRef.current = true;
       console.log("AudioContext initiated");
+
+      if (ctx.state === 'suspended') {
+        ctx.resume().catch(e => console.warn(e));
+      }
     } catch (e) {
       console.warn("AudioContext init error:", e);
     }
@@ -382,12 +421,23 @@ export const AppProvider = ({ children }) => {
       setIsPlaying(false);
     } else {
       if (!isYT) {
-        audioRef.current.play().then(() => {
-          setIsPlaying(true);
-        }).catch(err => {
-          console.error(err);
-          setIsPlaying(false);
-        });
+        if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
+          audioContextRef.current.resume().then(() => {
+            audioRef.current.play().then(() => {
+              setIsPlaying(true);
+            }).catch(err => {
+              console.error(err);
+              setIsPlaying(false);
+            });
+          });
+        } else {
+          audioRef.current.play().then(() => {
+            setIsPlaying(true);
+          }).catch(err => {
+            console.error(err);
+            setIsPlaying(false);
+          });
+        }
       } else {
         setIsPlaying(true);
       }
@@ -396,6 +446,9 @@ export const AppProvider = ({ children }) => {
 
   const playTrack = (track, newQueue = []) => {
     initAudioCtx();
+    if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
+      audioContextRef.current.resume().catch(e => console.warn(e));
+    }
     setCurrentTrack(track);
     setIsPlaying(true);
     

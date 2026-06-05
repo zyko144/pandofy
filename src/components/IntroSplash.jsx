@@ -30,9 +30,8 @@ export default function IntroSplash() {
       <div className="splash-content">
         <div className="logo-note-wrapper">
           <svg className="logo-note-3d" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="50" cy="50" r="45" stroke="#FF6600" strokeWidth="6" />
-            {/* A stylized music note */}
-            <path d="M42 32V60C39.3 58.3 35.8 58.7 33.3 61.2C30.4 64.1 30.4 68.9 33.3 71.8C36.2 74.7 41 74.7 43.9 71.8C45.9 69.8 46.5 66.8 46 64.1V40H62V52C59.3 50.3 55.8 50.7 53.3 53.2C50.4 56.1 50.4 60.9 53.3 63.8C56.2 66.7 61 66.7 63.9 63.8C65.9 61.8 66.5 58.8 66 56.1V32H42Z" fill="#FF6600" />
+            {/* Eighth note (croche) logo without circle, matching the user's uploaded image */}
+            <path d="M51 25 H55 C63 30 69 42 65 54 C60 41 55 36 55 36 V67 C55 67 50 73 42 78 C34 83 29 81 29 73 C29 65 34 58 40 58 C46 58 49 60 51 62.5 V25 Z" fill="#FF6600" />
           </svg>
         </div>
         

@@ -453,8 +453,10 @@ app.get('/api/admin/clear-tracks', async (req, res) => {
 // ─── VERSION ─────────────────────────────────────────────────
 app.get('/api/version', (req, res) => {
   res.json({
-    version: '2.2.0',
+    version: '2.2.1',
     changelog: [
+      '🎵 Nouveau Logo de démarrage (croche orange unique) sans cercle',
+      '⚡ Latence audio éliminée (lancement instantané de la lecture)',
       '🎵 Import YouTube et Lecture optimisés',
       '✨ Animation épurée et Logo Cinématique au démarrage',
       '⚡ Fluidité extrême et réduction de la latence (optimisé pour tous les PC)',
