@@ -18,7 +18,15 @@ export default function Player({ onToggleQueue, showQueue }) {
   const canvasRef = useRef(null);
   const playTracked = useRef(false);
   const ytPlayerRef = useRef(null);
+  const ytContainerRef = useRef(null);
   const [ytReady, setYtReady] = useState(false);
+
+  // Populate YouTube container once to avoid React reconciliation conflicts
+  useEffect(() => {
+    if (ytContainerRef.current) {
+      ytContainerRef.current.innerHTML = '<div id="yt-player-container"></div>';
+    }
+  }, []);
   const [sleepCountdown, setSleepCountdown] = useState('');
   const [showSleepMenu, setShowSleepMenu] = useState(false);
   const sleepIntervalRef = useRef(null);
@@ -352,8 +360,8 @@ export default function Player({ onToggleQueue, showQueue }) {
     <footer className="player">
       {/* Off-screen container for YouTube Player API */}
       <div 
+        ref={ytContainerRef}
         style={{ position: 'fixed', top: -1000, left: -1000, width: 300, height: 200, pointerEvents: 'none', zIndex: -1000 }}
-        dangerouslySetInnerHTML={{ __html: '<div id="yt-player-container"></div>' }}
       />
 
       {/* Left: Track info */}
