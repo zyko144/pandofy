@@ -19,7 +19,11 @@ import {
   ArrowRight,
   ShieldCheck,
   CreditCard,
-  UserCheck
+  UserCheck,
+  Compass,
+  TrendingUp,
+  History,
+  Settings
 } from 'lucide-react';
 
 export default function Views() {
@@ -38,6 +42,14 @@ export default function Views() {
       return <AccountView />;
     case 'playlist':
       return <PlaylistDetailView />;
+    case 'discover':
+      return <DiscoverView />;
+    case 'trends':
+      return <TrendsView />;
+    case 'history':
+      return <HistoryView />;
+    case 'settings':
+      return <SettingsView />;
     default:
       return <HomeView />;
   }
@@ -1221,6 +1233,315 @@ function PlaylistDetailView() {
             <p>Cette playlist est encore vide. Ajoutez des titres depuis la page d'accueil ou de recherche !</p>
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+// -------------------------------------------------------------
+// NEW DISCOVER VIEW
+// -------------------------------------------------------------
+function DiscoverView() {
+  const { tracks, playTrack, currentTrack, isPlaying, togglePlay } = useContext(AppContext);
+  
+  const recommendedTracks = tracks.slice(0, 6);
+  const newReleases = tracks.slice(6, 12);
+
+  const handlePlayRecommended = (track) => {
+    if (currentTrack?.id === track.id) {
+      togglePlay();
+    } else {
+      playTrack(track, tracks);
+    }
+  };
+
+  return (
+    <div className="scrollable view-container" style={{ padding: '24px 32px' }}>
+      <div className="section-header" style={{ marginBottom: 20 }}>
+        <h2 className="section-title" style={{ fontFamily: 'var(--font-display)', fontSize: '1.8rem', fontWeight: 900 }}>Découverte Musicale</h2>
+        <p style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>Des recommandations fraîches basées sur vos préférences</p>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 20, marginBottom: 32 }}>
+        <div style={{ background: 'linear-gradient(135deg, rgba(255,102,0,0.15) 0%, rgba(204,68,255,0.15) 100%)', borderRadius: 16, padding: 24, border: '1px solid var(--color-border)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: 180 }}>
+          <div>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#fff', marginBottom: 8 }}>Découvertes de la semaine</h3>
+            <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.82rem', lineHeight: 1.4 }}>Une playlist personnalisée générée chaque lundi avec des pépites rien que pour vous.</p>
+          </div>
+          <button onClick={() => recommendedTracks[0] && playTrack(recommendedTracks[0], recommendedTracks)} className="btn-primary" style={{ alignSelf: 'flex-start', marginTop: 16 }}>
+            <Play size={16} fill="#000" /> Écouter
+          </button>
+        </div>
+
+        <div style={{ background: 'linear-gradient(135deg, rgba(30,144,255,0.15) 0%, rgba(0,250,154,0.15) 100%)', borderRadius: 16, padding: 24, border: '1px solid rgba(255,255,255,0.08)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: 180 }}>
+          <div>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#fff', marginBottom: 8 }}>Radar des nouveautés</h3>
+            <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.82rem', lineHeight: 1.4 }}>Ne manquez aucune sortie de vos artistes favoris sur notre serveur communautaire.</p>
+          </div>
+          <button onClick={() => newReleases[0] && playTrack(newReleases[0], newReleases)} className="btn-secondary" style={{ alignSelf: 'flex-start', marginTop: 16 }}>
+            <Sparkles size={16} /> Parcourir
+          </button>
+        </div>
+      </div>
+
+      <div className="section-container" style={{ marginBottom: 32 }}>
+        <h3 className="section-title" style={{ marginBottom: 16 }}>Recommandé pour vous</h3>
+        <div className="grid-cards">
+          {recommendedTracks.map(track => {
+            const isCurrent = currentTrack?.id === track.id;
+            return (
+              <div key={track.id} className="music-card" onClick={() => playTrack(track, tracks)}>
+                <div className="music-card-cover-wrapper">
+                  <img src={track.coverUrl} alt="" className="music-card-cover" onError={e => e.target.src='https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300&auto=format&fit=crop&q=60'} />
+                  <button className="card-play-btn" onClick={(e) => { e.stopPropagation(); handlePlayRecommended(track); }}>
+                    {isCurrent && isPlaying ? <Pause size={20} fill="#000" /> : <Play size={20} fill="#000" />}
+                  </button>
+                </div>
+                <div className="music-card-title">{track.title}</div>
+                <div className="music-card-artist">{track.artistName}</div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// -------------------------------------------------------------
+// NEW TRENDS VIEW
+// -------------------------------------------------------------
+function TrendsView() {
+  const { tracks, playTrack, currentTrack, isPlaying, togglePlay, user, toggleLike, deleteTrack } = useContext(AppContext);
+  
+  const trendingTracks = [...tracks].sort((a, b) => (b.plays || 0) - (a.plays || 0)).slice(0, 15);
+
+  const handlePlayTrending = (track) => {
+    if (currentTrack?.id === track.id) {
+      togglePlay();
+    } else {
+      playTrack(track, trendingTracks);
+    }
+  };
+
+  return (
+    <div className="scrollable view-container" style={{ padding: '24px 32px' }}>
+      <div className="home-hero" style={{ background: 'linear-gradient(135deg, rgba(255,102,0,0.18) 0%, rgba(7,7,7,0.8) 100%)', marginBottom: 24, padding: 32 }}>
+        <span className="account-role-badge">Top Hits</span>
+        <h1 style={{ fontSize: '2.5rem', fontWeight: 900, marginTop: 12 }}>Tendances Pandofy</h1>
+        <p>Les morceaux les plus écoutés de la communauté Pandofy en ce moment.</p>
+      </div>
+
+      <div className="section-container">
+        <div className="tracks-list-header" style={{ display: 'grid', gridTemplateColumns: '40px 1fr 150px 100px 80px', padding: '10px 16px', borderBottom: '1px solid rgba(255,255,255,0.08)', color: 'var(--color-text-muted)', fontSize: '0.85rem', fontWeight: 600 }}>
+          <div>#</div>
+          <div>TITRE</div>
+          <div>GENRE</div>
+          <div>ÉCOUTES</div>
+          <div></div>
+        </div>
+
+        <div className="tracks-list" style={{ marginTop: 8 }}>
+          {trendingTracks.map((track, index) => {
+            const isCurrent = currentTrack?.id === track.id;
+            return (
+              <div 
+                key={track.id} 
+                className={`track-list-row ${isCurrent ? 'active' : ''}`}
+                style={{ display: 'grid', gridTemplateColumns: '40px 1fr 150px 100px 80px', alignItems: 'center', padding: '12px 16px', borderRadius: 8, cursor: 'pointer', transition: 'background 0.2s' }}
+                onClick={() => playTrack(track, trendingTracks)}
+              >
+                <div style={{ color: isCurrent ? 'var(--color-primary)' : 'var(--color-text-muted)', fontWeight: 700 }}>{index + 1}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <img src={track.coverUrl} alt="" style={{ width: 40, height: 40, borderRadius: 6, objectFit: 'cover' }} onError={e => e.target.src='https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=100&auto=format&fit=crop&q=60'} />
+                  <div>
+                    <div style={{ fontWeight: 600, color: isCurrent ? 'var(--color-primary)' : '#fff' }}>{track.title}</div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>{track.artistName}</div>
+                  </div>
+                </div>
+                <div style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>{track.genre}</div>
+                <div style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>{(track.plays || 0).toLocaleString()}</div>
+                <div style={{ display: 'flex', gap: 14, justifyContent: 'flex-end' }}>
+                  <button onClick={(e) => { e.stopPropagation(); toggleLike(track.id); }} style={{ color: user && user.likedTracks.map(String).includes(String(track.id)) ? 'var(--color-primary)' : 'var(--color-text-muted)', background: 'none', border: 'none', cursor: 'pointer' }}>
+                    <Heart size={15} fill={user && user.likedTracks.map(String).includes(String(track.id)) ? 'var(--color-primary)' : 'none'} />
+                  </button>
+                  {user && (user.username === 'cdeveloppeur' || user.role === 'developer' || user.role === 'admin' || user.username === track.artistId) && (
+                    <button onClick={(e) => { e.stopPropagation(); if(confirm(`Supprimer ${track.title} ?`)) deleteTrack(track.id); }} style={{ color: '#FF4400', background: 'none', border: 'none', cursor: 'pointer' }}>
+                      <Trash size={15} />
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// -------------------------------------------------------------
+// NEW HISTORY VIEW
+// -------------------------------------------------------------
+function HistoryView() {
+  const { history, playTrack, currentTrack, isPlaying, togglePlay, user, toggleLike } = useContext(AppContext);
+
+  return (
+    <div className="scrollable view-container" style={{ padding: '24px 32px' }}>
+      <div className="section-header" style={{ marginBottom: 24 }}>
+        <h2 className="section-title" style={{ fontFamily: 'var(--font-display)', fontSize: '1.8rem', fontWeight: 900 }}>Historique d'écoute</h2>
+        <p style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>Retrouvez les morceaux que vous avez écoutés récemment.</p>
+      </div>
+
+      {history.length > 0 ? (
+        <div className="tracks-list">
+          {history.map((track, idx) => {
+            const isCurrent = currentTrack?.id === track.id;
+            return (
+              <div 
+                key={`${track.id}-${idx}`}
+                className={`track-list-row ${isCurrent ? 'active' : ''}`}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderRadius: 8, cursor: 'pointer', marginBottom: 6, transition: 'background 0.2s' }}
+                onClick={() => playTrack(track, history)}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                  <img src={track.coverUrl} alt="" style={{ width: 44, height: 44, borderRadius: 6, objectFit: 'cover' }} onError={e => e.target.src='https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=100&auto=format&fit=crop&q=60'} />
+                  <div>
+                    <div style={{ fontWeight: 600, color: isCurrent ? 'var(--color-primary)' : '#fff' }}>{track.title}</div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>{track.artistName}</div>
+                  </div>
+                </div>
+                
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>{track.genre}</span>
+                  <button onClick={(e) => { e.stopPropagation(); toggleLike(track.id); }} style={{ color: user && user.likedTracks.map(String).includes(String(track.id)) ? 'var(--color-primary)' : 'var(--color-text-muted)', background: 'none', border: 'none', cursor: 'pointer' }}>
+                    <Heart size={15} fill={user && user.likedTracks.map(String).includes(String(track.id)) ? 'var(--color-primary)' : 'none'} />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="empty-state" style={{ marginTop: 60 }}>
+          <History className="empty-state-icon" size={48} style={{ color: 'var(--color-text-muted)', marginBottom: 12 }} />
+          <p style={{ color: 'var(--color-text-muted)' }}>Votre historique d'écoute est encore vide. Lancez quelques titres !</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// -------------------------------------------------------------
+// NEW SETTINGS VIEW
+// -------------------------------------------------------------
+const SETTINGS_THEME_COLORS = [
+  { name: 'Orange', value: '#FF6600' },
+  { name: 'Violet', value: '#8B5CF6' },
+  { name: 'Bleu', value: '#3B82F6' },
+  { name: 'Rouge', value: '#EF4444' },
+  { name: 'Rose', value: '#EC4899' },
+  { name: 'Vert', value: '#10B981' },
+  { name: 'Cyan', value: '#06B6D4' },
+  { name: 'Or', value: '#F59E0B' },
+];
+
+const getSettingsBgGlowColors = (color) => {
+  const map = {
+    '#FF6600': { start: '#301400', end: '#2b1100' }, // Orange
+    '#8B5CF6': { start: '#1d0e3d', end: '#14082e' }, // Violet
+    '#3B82F6': { start: '#0c1b3d', end: '#06102b' }, // Bleu
+    '#EF4444': { start: '#380c0c', end: '#290606' }, // Rouge
+    '#EC4899': { start: '#3b0d24', end: '#290616' }, // Rose
+    '#10B981': { start: '#06291a', end: '#031c11' }, // Vert
+    '#06B6D4': { start: '#042730', end: '#021a21' }, // Cyan
+    '#F59E0B': { start: '#2e1c02', end: '#211301' }, // Or
+  };
+  return map[color] || { start: '#161616', end: '#0a0a0a' };
+};
+
+function SettingsView() {
+  const { user, updateProfile, themeAccent, setThemeAccent } = useContext(AppContext);
+  const [shareActivity, setShareActivity] = useState(true);
+
+  const applyTheme = (color) => {
+    localStorage.setItem('pandofy_theme_color', color);
+    setThemeAccent(color);
+    document.documentElement.style.setProperty('--color-primary', color);
+    document.documentElement.style.setProperty('--color-primary-hover', color + 'CC');
+    document.documentElement.style.setProperty('--color-primary-glow', color + '66');
+    const glows = getSettingsBgGlowColors(color);
+    document.documentElement.style.setProperty('--color-bg-glow-start', glows.start);
+    document.documentElement.style.setProperty('--color-bg-glow-end', glows.end);
+    if (user) {
+      updateProfile(user.displayName, user.bio, color);
+    }
+  };
+
+  return (
+    <div className="scrollable view-container" style={{ padding: '24px 32px' }}>
+      <div className="section-header" style={{ marginBottom: 24 }}>
+        <h2 className="section-title" style={{ fontFamily: 'var(--font-display)', fontSize: '1.8rem', fontWeight: 900 }}>Paramètres de l'application</h2>
+        <p style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>Gérez vos préférences, votre thème de couleur et la configuration.</p>
+      </div>
+
+      <div className="account-card" style={{ padding: 24, marginBottom: 20, borderTop: '2px solid var(--color-primary)', background: 'rgba(30, 30, 30, 0.45)', borderRadius: 12 }}>
+        <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#fff', marginBottom: 14 }}>🎨 Thème visuel (Couleur d'accentuation)</h3>
+        <p style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem', marginBottom: 16 }}>
+          Personnalisez la couleur principale de l'interface de Pandofy.
+        </p>
+        
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: 12 }}>
+          {SETTINGS_THEME_COLORS.map(tc => (
+            <button 
+              key={tc.value} 
+              onClick={() => applyTheme(tc.value)}
+              style={{
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, padding: '14px 10px',
+                borderRadius: 12, border: `2px solid ${themeAccent === tc.value ? tc.value : 'rgba(255,255,255,0.06)'}`,
+                background: themeAccent === tc.value ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.02)',
+                cursor: 'pointer', transition: 'all 0.2s'
+              }}
+            >
+              <div style={{ width: 28, height: 28, borderRadius: '50%', background: tc.value }} />
+              <span style={{ color: '#fff', fontSize: '0.75rem', fontWeight: 600 }}>{tc.name}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="account-card" style={{ padding: 24, marginBottom: 20, borderTop: '2px solid rgba(255,255,255,0.08)', background: 'rgba(30, 30, 30, 0.45)', borderRadius: 12 }}>
+        <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#fff', marginBottom: 14 }}>🔒 Social & Confidentialité</h3>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div>
+            <div style={{ fontWeight: 600, color: '#fff', fontSize: '0.92rem' }}>Partager mon activité d'écoute</div>
+            <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', marginTop: 4 }}>Permettre à vos amis de voir ce que vous écoutez.</div>
+          </div>
+          <input 
+            type="checkbox" 
+            checked={shareActivity} 
+            onChange={(e) => setShareActivity(e.target.checked)} 
+            style={{ width: 20, height: 20, cursor: 'pointer', accentColor: 'var(--color-primary)' }}
+          />
+        </div>
+      </div>
+
+      <div className="account-card" style={{ padding: 24, borderTop: '2px solid rgba(255,255,255,0.08)', background: 'rgba(30, 30, 30, 0.45)', borderRadius: 12 }}>
+        <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#fff', marginBottom: 14 }}>ℹ️ Informations Système</h3>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, fontSize: '0.88rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: 6 }}>
+            <span style={{ color: 'var(--color-text-muted)' }}>Version de l'application</span>
+            <span style={{ color: '#fff', fontWeight: 600 }}>Pandofy Desktop v1.5.0</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: 6 }}>
+            <span style={{ color: 'var(--color-text-muted)' }}>Client Electron</span>
+            <span style={{ color: '#fff', fontWeight: 600 }}>Electron v34.3.0 (Chromium 132)</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span style={{ color: 'var(--color-text-muted)' }}>Statut du serveur de base de données</span>
+            <span style={{ color: 'var(--color-primary)', fontWeight: 600 }}>Connecté (Local SQLite fallback)</span>
+          </div>
+        </div>
       </div>
     </div>
   );

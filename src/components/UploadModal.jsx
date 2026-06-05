@@ -152,14 +152,14 @@ export default function UploadModal() {
 
         {allDone ? (
           <div style={{ textAlign: 'center', padding: '32px 0' }}>
-            <CheckCircle size={52} color="#FF6600" style={{ marginBottom: 12 }} />
-            <div style={{ color: '#FF6600', fontWeight: 700, fontSize: '1.1rem' }}>{doneCount} son{doneCount > 1 ? 's' : ''} publié{doneCount > 1 ? 's' : ''} !</div>
+            <CheckCircle size={52} color="var(--color-primary)" style={{ marginBottom: 12 }} />
+            <div style={{ color: 'var(--color-primary)', fontWeight: 700, fontSize: '1.1rem' }}>{doneCount} son{doneCount > 1 ? 's' : ''} publié{doneCount > 1 ? 's' : ''} !</div>
             <div style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem', marginTop: 4 }}>Visibles par toute la communauté</div>
           </div>
         ) : (
           <form onSubmit={handleSubmit}>
             {tracks.map((track, idx) => (
-              <div key={track.id} style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${track.status === 'error' ? '#FF4400' : track.status === 'done' ? '#FF6600' : 'rgba(255,255,255,0.08)'}`, borderRadius: 12, padding: 16, marginBottom: 12, position: 'relative' }}>
+              <div key={track.id} style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${track.status === 'error' ? '#FF4400' : track.status === 'done' ? 'var(--color-primary)' : 'rgba(255,255,255,0.08)'}`, borderRadius: 12, padding: 16, marginBottom: 12, position: 'relative' }}>
 
                 {/* Track header */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
@@ -178,7 +178,7 @@ export default function UploadModal() {
                 {/* Progress bar */}
                 {track.status === 'uploading' && (
                   <div style={{ height: 3, background: 'rgba(255,255,255,0.1)', borderRadius: 2, marginBottom: 12 }}>
-                    <div style={{ height: '100%', width: `${track.progress}%`, background: 'linear-gradient(to right, #FF6600, #CC44FF)', borderRadius: 2, transition: 'width 0.3s ease', animation: 'pulse 1s infinite' }} />
+                    <div style={{ height: '100%', width: `${track.progress}%`, background: 'linear-gradient(to right, var(--color-primary), #CC44FF)', borderRadius: 2, transition: 'width 0.3s ease', animation: 'pulse 1s infinite' }} />
                   </div>
                 )}
 
@@ -189,7 +189,7 @@ export default function UploadModal() {
                       <div style={{ marginBottom: 10 }}>
                         <input ref={el => audioRefs.current[track.id] = el} type="file" accept="audio/mpeg,audio/flac,audio/wav,audio/ogg,audio/x-m4a" style={{ display: 'none' }} onChange={e => handleAudioFile(track.id, e)} />
                         <div onClick={() => audioRefs.current[track.id]?.click()}
-                          style={{ border: `2px dashed ${track.audioFile ? 'var(--color-primary)' : 'rgba(255,255,255,0.1)'}`, borderRadius: 8, padding: '12px', textAlign: 'center', cursor: 'pointer', background: track.audioFile ? 'rgba(255,102,0,0.05)' : 'transparent' }}>
+                          style={{ border: `2px dashed ${track.audioFile ? 'var(--color-primary)' : 'rgba(255,255,255,0.1)'}`, borderRadius: 8, padding: '12px', textAlign: 'center', cursor: 'pointer', background: track.audioFile ? 'var(--color-primary-glow)' : 'transparent' }}>
                           {track.audioFile ? (
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
                               <Music size={16} color="var(--color-primary)" />
@@ -244,7 +244,7 @@ export default function UploadModal() {
             {/* Add track button */}
             {tracks.length < 10 && !uploading && (
               <button type="button" onClick={addTrack}
-                style={{ width: '100%', padding: '10px', borderRadius: 10, border: '1px dashed rgba(255,102,0,0.3)', background: 'transparent', color: '#FF6600', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: 16 }}>
+                style={{ width: '100%', padding: '10px', borderRadius: 10, border: '1px dashed var(--color-border)', background: 'transparent', color: 'var(--color-primary)', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: 16 }}>
                 <Plus size={14} /> Ajouter un son ({tracks.length}/10)
               </button>
             )}

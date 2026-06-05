@@ -115,7 +115,7 @@ export default function QueuePanel({ isOpen, onClose }) {
       {/* Header */}
       <div className="queue-panel-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <ListMusic size={18} color="#FF6600" />
+          <ListMusic size={18} color="var(--color-primary)" />
           <span className="queue-panel-title">File d'attente</span>
           <span className="queue-badge">{upcomingTracks.length}</span>
         </div>

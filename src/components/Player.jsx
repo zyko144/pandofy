@@ -166,10 +166,16 @@ export default function Player({ onToggleQueue, showQueue }) {
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     let animId;
+    let lastDrawTime = 0;
     const draw = () => {
       if (isPlaying) {
         animId = requestAnimationFrame(draw);
       }
+      
+      const now = Date.now();
+      if (now - lastDrawTime < 33) return; // Limit to ~30 FPS
+      lastDrawTime = now;
+
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       const count = 16, bw = 3, gap = 2;
       const startX = (canvas.width - count * (bw + gap)) / 2;
@@ -197,14 +203,16 @@ export default function Player({ onToggleQueue, showQueue }) {
           }
         }
       }
+
+      // Read active primary theme color dynamically
+      const themeColor = getComputedStyle(document.documentElement).getPropertyValue('--color-primary').trim() || '#FF6600';
+      ctx.fillStyle = themeColor;
+
       for (let i = 0; i < count; i++) {
         const pct = data[i] / 255;
         const bh = Math.max(2, pct * canvas.height);
         const x = startX + i * (bw + gap);
         const y = canvas.height - bh;
-        const g = ctx.createLinearGradient(x, y, x, canvas.height);
-        g.addColorStop(0, '#FF8800'); g.addColorStop(1, '#FF4400');
-        ctx.fillStyle = g;
         try { ctx.roundRect(x, y, bw, bh, 1.5); ctx.fill(); } catch { ctx.fillRect(x, y, bw, bh); }
       }
     };
@@ -374,8 +382,8 @@ export default function Player({ onToggleQueue, showQueue }) {
           <div className="player-time">{fmt(localTime)}</div>
           <div className="player-progress-bar" onClick={handleProgressClick}
             style={{ flex: 1, height: 4, background: 'rgba(255,255,255,0.12)', borderRadius: 2, cursor: 'pointer', position: 'relative', margin: '0 8px' }}>
-            <div style={{ height: '100%', width: `${progress}%`, background: 'linear-gradient(to right, #FF6600, #CC44FF)', borderRadius: 2, position: 'relative', transition: 'width 0.1s linear' }}>
-              <div style={{ position: 'absolute', right: -5, top: '50%', transform: 'translateY(-50%)', width: 10, height: 10, borderRadius: '50%', background: '#fff', boxShadow: '0 0 4px rgba(255,102,0,0.8)' }} />
+            <div style={{ height: '100%', width: `${progress}%`, background: 'linear-gradient(to right, var(--color-primary), #CC44FF)', borderRadius: 2, position: 'relative', transition: 'width 0.1s linear' }}>
+              <div style={{ position: 'absolute', right: -5, top: '50%', transform: 'translateY(-50%)', width: 10, height: 10, borderRadius: '50%', background: '#fff', boxShadow: '0 0 4px var(--color-primary)' }} />
             </div>
           </div>
           <div className="player-time player-time-total">{fmt(duration)}</div>
@@ -399,7 +407,7 @@ export default function Player({ onToggleQueue, showQueue }) {
         {/* Sleep timer */}
         <div style={{ position: 'relative' }}>
           <button onClick={() => setShowSleepMenu(!showSleepMenu)}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: sleepTimer ? '#FF6600' : 'var(--color-text-muted)', padding: '4px', display: 'flex', alignItems: 'center', gap: 4, fontSize: 11 }}>
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: sleepTimer ? 'var(--color-primary)' : 'var(--color-text-muted)', padding: '4px', display: 'flex', alignItems: 'center', gap: 4, fontSize: 11 }}>
             <Moon size={16} />
             {sleepCountdown && <span className="sleep-timer-countdown">{sleepCountdown}</span>}
           </button>
@@ -417,7 +425,7 @@ export default function Player({ onToggleQueue, showQueue }) {
         {/* Queue */}
         <div className="queue-btn-wrapper">
           <button onClick={onToggleQueue} title="File d'attente"
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: showQueue ? '#FF6600' : 'var(--color-text-muted)', padding: '4px', display: 'flex', alignItems: 'center' }}>
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: showQueue ? 'var(--color-primary)' : 'var(--color-text-muted)', padding: '4px', display: 'flex', alignItems: 'center' }}>
             <ListMusic size={18} />
           </button>
           {upcomingCount > 0 && <span className="queue-btn-badge">{upcomingCount}</span>}

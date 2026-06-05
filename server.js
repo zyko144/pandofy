@@ -150,22 +150,21 @@ if (process.env.DATABASE_URL) {
 }
 
 // ─── SEED DEFAULT USERS ──────────────────────────────────────
-const userCount = await dbGet('SELECT COUNT(*) as c FROM users');
-if (parseInt(userCount?.c || 0) === 0) {
-  const SALT = 10;
-  const defaultUsers = [
-    { username: 'cdeveloppeur', displayName: 'cdeveloppeur', password: 'cdeveloppeur', role: 'developer', premiumStatus: 'premium_individual', bio: 'Compte Développeur Officiel', profileColor: '#FF4400', avatarSeed: 'developer' },
-    { username: 'zyko921', displayName: 'ZYKO921', password: 'password123', role: 'artist', premiumStatus: 'premium_individual', bio: 'Créateur de Pandofy', profileColor: '#FF6600', avatarSeed: 'zyko' },
-  ];
-  for (const u of defaultUsers) {
-    const hashed = await bcrypt.hash(u.password, SALT);
-    await dbRun(
-      `INSERT INTO users (username, "displayName", password, role, "premiumStatus", bio, "profileColor", "avatarSeed") VALUES ($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT DO NOTHING`,
-      [u.username, u.displayName, hashed, u.role, u.premiumStatus, u.bio, u.profileColor, u.avatarSeed]
-    );
-  }
-  console.log('[SEED] Utilisateurs par défaut créés');
+const SALT = 10;
+const defaultUsers = [
+  { username: 'cdeveloppeur', displayName: 'cdeveloppeur', password: 'cdeveloppeur', role: 'developer', premiumStatus: 'premium_individual', bio: 'Compte Développeur Officiel', profileColor: '#FF4400', avatarSeed: 'developer' },
+  { username: 'zyko921', displayName: 'ZYKO921', password: 'password123', role: 'artist', premiumStatus: 'premium_individual', bio: 'Créateur de Pandofy', profileColor: '#FF6600', avatarSeed: 'zyko' },
+  { username: 'pandofy', displayName: 'Pandofy', password: 'password123', role: 'admin', premiumStatus: 'premium_individual', bio: 'Compte Officiel Pandofy', profileColor: '#FF6600', avatarSeed: 'pandofy' },
+  { username: 'zyko59430', displayName: 'Zyko59430', password: 'password123', role: 'artist', premiumStatus: 'premium_individual', bio: 'Co-créateur de Pandofy', profileColor: '#FF6600', avatarSeed: 'zyko' },
+];
+for (const u of defaultUsers) {
+  const hashed = await bcrypt.hash(u.password, SALT);
+  await dbRun(
+    `INSERT INTO users (username, "displayName", password, role, "premiumStatus", bio, "profileColor", "avatarSeed") VALUES ($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT DO NOTHING`,
+    [u.username, u.displayName, hashed, u.role, u.premiumStatus, u.bio, u.profileColor, u.avatarSeed]
+  );
 }
+console.log('[SEED] Utilisateurs par défaut configurés');
 
 // ─── BCRYPT MIGRATION ─────────────────────────────────────────
 const allUsers = await dbQuery('SELECT username, password FROM users');
@@ -594,12 +593,191 @@ app.post('/api/support', async (req, res) => {
     if (!message) return res.status(400).json({ error: 'Message requis' });
     const msgId = Date.now();
     const body = `Catégorie: ${category || 'Non spécifié'}\nUtilisateur: ${username}\nEmail: ${email || 'Non renseigné'}\n\nMessage:\n${message}`;
+    
+    // Insérer pour les deux comptes de support : pandofy et zyko59430
     await dbRun(
       `INSERT INTO messages (id, username, sender, subject, body, date, read) VALUES ($1,$2,$3,$4,$5,$6,0)`,
       [msgId, 'pandofy', email || `${username}@pandofy.app`, `[SUPPORT] ${category || 'Message'}`, body, Date.now()]
     );
+    await dbRun(
+      `INSERT INTO messages (id, username, sender, subject, body, date, read) VALUES ($1,$2,$3,$4,$5,$6,0)`,
+      [msgId + 1, 'zyko59430', email || `${username}@pandofy.app`, `[SUPPORT] ${category || 'Message'}`, body, Date.now()]
+    );
+    
     res.json({ success: true });
   } catch (err) { console.error(err); res.status(500).json({ error: 'Erreur envoi support' }); }
+});
+
+// ─── SIMULATED OAUTH ─────────────────────────────────────────
+app.get('/api/auth/oauth-mock', (req, res) => {
+  const { provider = 'google' } = req.query;
+  const capitalized = provider.charAt(0).toUpperCase() + provider.slice(1);
+  const colorMap = {
+    google: '#4285F4',
+    github: '#333333',
+    discord: '#5865F2',
+    apple: '#000000'
+  };
+  const themeColor = colorMap[provider] || '#FF6600';
+  
+  res.send(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>Connexion avec ${capitalized}</title>
+      <style>
+        body {
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+          background: #0d0d0d;
+          color: #fff;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          height: 100vh;
+          margin: 0;
+        }
+        .card {
+          background: #181818;
+          border-radius: 16px;
+          border: 1px solid rgba(255,255,255,0.08);
+          padding: 32px;
+          width: 380px;
+          text-align: center;
+          box-shadow: 0 10px 35px rgba(0,0,0,0.6);
+        }
+        .logo {
+          font-size: 44px;
+          margin-bottom: 20px;
+        }
+        h2 { margin: 0 0 8px 0; font-size: 22px; font-weight: 800; }
+        p { color: #a7a7a7; font-size: 14px; margin: 0 0 28px 0; }
+        .btn-account {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+          width: 100%;
+          background: rgba(255,255,255,0.03);
+          border: 1px solid rgba(255,255,255,0.08);
+          border-radius: 10px;
+          padding: 14px;
+          color: #fff;
+          font-size: 14px;
+          font-weight: 600;
+          cursor: pointer;
+          margin-bottom: 12px;
+          transition: all 0.2s ease;
+          text-align: left;
+        }
+        .btn-account:hover {
+          background: rgba(255,255,255,0.08);
+          border-color: ${themeColor};
+          transform: translateY(-1px);
+        }
+        .avatar {
+          width: 36px;
+          height: 36px;
+          border-radius: 50%;
+          background: ${themeColor};
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: 800;
+          color: #fff;
+          font-size: 16px;
+        }
+        .footer {
+          margin-top: 24px;
+          font-size: 11px;
+          color: #555;
+          letter-spacing: 0.5px;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="card">
+        <div class="logo">🔑</div>
+        <h2>Connexion via ${capitalized}</h2>
+        <p>Sélectionnez un compte pour vous connecter à Pandofy</p>
+        
+        <button class="btn-account" onclick="login('${provider}_demo', 'Utilisateur Démo', '${provider}_demo@pandofy.app')">
+          <div class="avatar">D</div>
+          <div>
+            <div style="font-weight: 700;">Utilisateur Démo</div>
+            <div style="font-size: 12px; color: #a7a7a7; font-weight: 400;">${provider}_demo@pandofy.app</div>
+          </div>
+        </button>
+
+        <button class="btn-account" onclick="login('${provider}_artist', 'Artiste Démo', '${provider}_artist@pandofy.app', 'artist')">
+          <div class="avatar" style="background-color: #8B5CF6;">A</div>
+          <div>
+            <div style="font-weight: 700;">Artiste Démo</div>
+            <div style="font-size: 12px; color: #a7a7a7; font-weight: 400;">${provider}_artist@pandofy.app</div>
+          </div>
+        </button>
+
+        <div class="footer">
+          CONNEXION SECURISEE SIMULEE OAUTH2
+        </div>
+      </div>
+
+      <script>
+        function login(username, displayName, email, role = 'listener') {
+          fetch('/api/auth/oauth-callback', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, displayName, email, role, provider: '${provider}' })
+          })
+          .then(res => res.json())
+          .then(data => {
+            if (data.token) {
+              window.opener.postMessage({ type: 'oauth-success', data }, '*');
+              window.close();
+            } else {
+              alert('Erreur de connexion OAuth');
+            }
+          })
+          .catch(err => {
+            console.error(err);
+            alert('Erreur technique de communication avec le serveur backend');
+          });
+        }
+      </script>
+    </body>
+    </html>
+  `);
+});
+
+app.post('/api/auth/oauth-callback', async (req, res) => {
+  try {
+    const { username, displayName, email, role, provider } = req.body;
+    if (!username) return res.status(400).json({ error: 'Username requis' });
+    
+    const lower = username.toLowerCase().trim();
+    let userRow = await dbGet('SELECT * FROM users WHERE username = $1', [lower]);
+    
+    if (!userRow) {
+      const randomPassword = crypto.randomBytes(16).toString('hex');
+      const hashed = await bcrypt.hash(randomPassword, 10);
+      await dbRun(
+        `INSERT INTO users (username, "displayName", password, role, "premiumStatus", bio, "profileColor", "avatarSeed", email) VALUES ($1,$2,$3,$4,'none',$5,$6,$7,$8)`,
+        [lower, displayName, hashed, role || 'listener', `Compte connecté via ${provider}.`, '#FF6600', lower, email]
+      );
+      await sendWelcomeMessage(lower, displayName);
+      userRow = await dbGet('SELECT * FROM users WHERE username = $1', [lower]);
+    }
+    
+    const safeUser = await buildUserObject(userRow.username);
+    const token = jwt.sign(
+      { username: userRow.username, role: userRow.role, premiumStatus: userRow.premiumStatus },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+    res.json({ ...safeUser, token });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'OAuth callback crash' });
+  }
 });
 
 // ─── STATIC FILES (for Electron) ─────────────────────────────

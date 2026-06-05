@@ -44,7 +44,21 @@ function ShortcutsModal({ onClose }) {
   );
 }
 
-// ─── Theme Colors ─────────────────────────────────────────────────────────────
+// ─── Theme Colors & Background Glow Helpers ─────────────────────────────────────
+const getBgGlowColors = (color) => {
+  const map = {
+    '#FF6600': { start: '#301400', end: '#2b1100' }, // Orange
+    '#8B5CF6': { start: '#1d0e3d', end: '#14082e' }, // Violet
+    '#3B82F6': { start: '#0c1b3d', end: '#06102b' }, // Bleu
+    '#EF4444': { start: '#380c0c', end: '#290606' }, // Rouge
+    '#EC4899': { start: '#3b0d24', end: '#290616' }, // Rose
+    '#10B981': { start: '#06291a', end: '#031c11' }, // Vert
+    '#06B6D4': { start: '#042730', end: '#021a21' }, // Cyan
+    '#F59E0B': { start: '#2e1c02', end: '#211301' }, // Or
+  };
+  return map[color] || { start: '#161616', end: '#0a0a0a' };
+};
+
 const THEME_COLORS = [
   { name: 'Orange', value: '#FF6600' },
   { name: 'Violet', value: '#8B5CF6' },
@@ -57,12 +71,23 @@ const THEME_COLORS = [
 ];
 
 function ThemePicker({ onClose }) {
-  const currentTheme = localStorage.getItem('pandofy_theme_color') || '#FF6600';
+  const { user, updateProfile, themeAccent, setThemeAccent } = useContext(AppContext);
+  const currentTheme = themeAccent;
   const applyTheme = (color) => {
     localStorage.setItem('pandofy_theme_color', color);
+    setThemeAccent(color);
     document.documentElement.style.setProperty('--color-primary', color);
     document.documentElement.style.setProperty('--color-primary-hover', color + 'CC');
     document.documentElement.style.setProperty('--color-primary-glow', color + '66');
+    
+    // Apply background aura colors
+    const glows = getBgGlowColors(color);
+    document.documentElement.style.setProperty('--color-bg-glow-start', glows.start);
+    document.documentElement.style.setProperty('--color-bg-glow-end', glows.end);
+
+    if (user) {
+      updateProfile(user.displayName, user.bio, color);
+    }
     onClose?.();
   };
   return (
@@ -109,15 +134,18 @@ function AppContent() {
   const searchInputRef = useRef(null);
   const debounceRef = useRef(null);
 
-  // Apply saved theme on mount
+  const { themeAccent, setThemeAccent } = useContext(AppContext);
+
+  // Sync color custom variables on mount / user update / themeAccent change
   useEffect(() => {
-    const savedColor = localStorage.getItem('pandofy_theme_color');
-    if (savedColor && savedColor !== '#FF6600') {
-      document.documentElement.style.setProperty('--color-primary', savedColor);
-      document.documentElement.style.setProperty('--color-primary-hover', savedColor + 'CC');
-      document.documentElement.style.setProperty('--color-primary-glow', savedColor + '66');
-    }
-  }, []);
+    const savedColor = user?.profileColor || themeAccent;
+    document.documentElement.style.setProperty('--color-primary', savedColor);
+    document.documentElement.style.setProperty('--color-primary-hover', savedColor + 'CC');
+    document.documentElement.style.setProperty('--color-primary-glow', savedColor + '66');
+    const glows = getBgGlowColors(savedColor);
+    document.documentElement.style.setProperty('--color-bg-glow-start', glows.start);
+    document.documentElement.style.setProperty('--color-bg-glow-end', glows.end);
+  }, [user, themeAccent]);
 
   const handleSync = async () => {
     if (isSyncing) return;
@@ -177,14 +205,8 @@ function AppContent() {
     return <span style={{ fontSize: '0.6rem', fontWeight: 700, padding: '1px 5px', borderRadius: 4, background: (colors[format] || '#888') + '22', color: colors[format] || '#888', border: `1px solid ${(colors[format] || '#888')}44` }}>{format}</span>;
   };
 
-  const appStyle = user?.profileColor ? {
-    '--color-primary': user.profileColor,
-    '--color-primary-hover': user.profileColor + 'CC',
-    '--color-primary-glow': user.profileColor + '66'
-  } : {};
-
   return (
-    <div className="app-container" style={appStyle}>
+    <div className="app-container">
       <IntroSplash />
 
       {/* Toast notification */}

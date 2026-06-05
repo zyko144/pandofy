@@ -88,8 +88,8 @@ export default function MiniPlayer({ visible, onExpand }) {
             >
               <Heart
                 size={16}
-                fill={isLiked ? '#FF6600' : 'none'}
-                color={isLiked ? '#FF6600' : 'currentColor'}
+                fill={isLiked ? 'var(--color-primary)' : 'none'}
+                color={isLiked ? 'var(--color-primary)' : 'currentColor'}
               />
             </button>
           )}

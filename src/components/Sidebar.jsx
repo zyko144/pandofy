@@ -10,7 +10,11 @@ import {
   Heart, 
   Upload,
   Globe,
-  HelpCircle
+  HelpCircle,
+  Compass,
+  TrendingUp,
+  History,
+  Settings
 } from 'lucide-react';
 
 export default function Sidebar() {
@@ -69,7 +73,7 @@ export default function Sidebar() {
       </a>
 
       {/* Main Navigation */}
-      <div className="sidebar-menu-section">
+      <div className="sidebar-menu-section" style={{ flex: 1, overflowY: 'auto', paddingRight: 4 }}>
         <button 
           className={`sidebar-menu-item ${activeTab === 'home' ? 'active' : ''}`}
           onClick={() => handleTabChange('home')}
@@ -91,6 +95,31 @@ export default function Sidebar() {
           <Library size={20} />
           <span>Bibliothèque</span>
         </button>
+
+        <div className="sidebar-menu-title" style={{ marginTop: 16 }}>Découvrir</div>
+        <button 
+          className={`sidebar-menu-item ${activeTab === 'discover' ? 'active' : ''}`}
+          onClick={() => handleTabChange('discover')}
+        >
+          <Compass size={20} />
+          <span>Découverte</span>
+        </button>
+        <button 
+          className={`sidebar-menu-item ${activeTab === 'trends' ? 'active' : ''}`}
+          onClick={() => handleTabChange('trends')}
+        >
+          <TrendingUp size={20} />
+          <span>Tendances</span>
+        </button>
+        
+        <div className="sidebar-menu-title" style={{ marginTop: 16 }}>Ma Musique</div>
+        <button 
+          className={`sidebar-menu-item ${activeTab === 'history' ? 'active' : ''}`}
+          onClick={() => handleTabChange('history')}
+        >
+          <History size={20} />
+          <span>Historique</span>
+        </button>
         <button 
           className={`sidebar-menu-item ${activeTab === 'premium' ? 'active' : ''}`}
           onClick={() => handleTabChange('premium')}
@@ -98,28 +127,21 @@ export default function Sidebar() {
           <Sparkles size={20} />
           <span>Premium</span>
         </button>
+
+        <div className="sidebar-menu-title" style={{ marginTop: 16 }}>Configuration</div>
         <button 
           className={`sidebar-menu-item ${activeTab === 'account' ? 'active' : ''}`}
           onClick={() => handleTabChange('account')}
         >
           <User size={20} />
-          <span>{user ? user.displayName : 'Compte'}</span>
+          <span>{user ? user.displayName : 'Mon Compte'}</span>
         </button>
         <button 
-          className="sidebar-menu-item"
-          onClick={() => {
-            if (window.electronAPI?.openExternalLink) {
-              window.electronAPI.openExternalLink('https://pandofy.app');
-            } else if (window.electronAPI?.openWebsite) {
-              window.electronAPI.openWebsite();
-            } else {
-              window.open('https://pandofy.app', '_blank');
-            }
-          }}
-          title="Consulter le site officiel"
+          className={`sidebar-menu-item ${activeTab === 'settings' ? 'active' : ''}`}
+          onClick={() => handleTabChange('settings')}
         >
-          <Globe size={20} style={{ color: 'var(--color-primary)' }} />
-          <span>Site Officiel</span>
+          <Settings size={20} />
+          <span>Paramètres</span>
         </button>
         <button
           className="sidebar-menu-item"

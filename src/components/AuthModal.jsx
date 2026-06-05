@@ -3,7 +3,7 @@ import { AppContext } from '../context/AppContext';
 import { X, Loader, RefreshCw, WifiOff } from 'lucide-react';
 
 export default function AuthModal() {
-  const { showAuthModal, setShowAuthModal, handleLogin, handleRegister, isServerActive, refreshData } = useContext(AppContext);
+  const { showAuthModal, setShowAuthModal, handleLogin, handleRegister, isServerActive, refreshData, startOAuthFlow } = useContext(AppContext);
   const [isRegisterMode, setIsRegisterMode] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -201,6 +201,27 @@ export default function AuthModal() {
             }
           </button>
         </form>
+
+        <div style={{ margin: '18px 0 12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+          <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.06)' }} />
+          <span style={{ fontSize: 10, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: 0.8, fontWeight: 600 }}>Ou se connecter avec</span>
+          <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.06)' }} />
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 18 }}>
+          <button type="button" onClick={() => startOAuthFlow('google')} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '10px 0', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, cursor: 'pointer', background: 'rgba(255,255,255,0.02)', color: '#fff', fontSize: '1.2rem', transition: 'all 0.2s' }} title="Google" className="btn-social-oauth">
+            🌐
+          </button>
+          <button type="button" onClick={() => startOAuthFlow('github')} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '10px 0', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, cursor: 'pointer', background: 'rgba(255,255,255,0.02)', color: '#fff', fontSize: '1.2rem', transition: 'all 0.2s' }} title="GitHub" className="btn-social-oauth">
+            🐙
+          </button>
+          <button type="button" onClick={() => startOAuthFlow('discord')} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '10px 0', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, cursor: 'pointer', background: 'rgba(255,255,255,0.02)', color: '#fff', fontSize: '1.2rem', transition: 'all 0.2s' }} title="Discord" className="btn-social-oauth">
+            💬
+          </button>
+          <button type="button" onClick={() => startOAuthFlow('apple')} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '10px 0', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, cursor: 'pointer', background: 'rgba(255,255,255,0.02)', color: '#fff', fontSize: '1.2rem', transition: 'all 0.2s' }} title="Apple" className="btn-social-oauth">
+            🍎
+          </button>
+        </div>
 
         <div className="modal-toggle-auth">
           {isRegisterMode ? (

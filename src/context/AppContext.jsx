@@ -69,6 +69,17 @@ export const AppProvider = ({ children }) => {
   const [shuffledIndices, setShuffledIndices] = useState([]); // Fisher-Yates shuffled indices
   const [shufflePos, setShufflePos] = useState(0); // position in shuffledIndices
 
+  // Newly Added Audit States: History and Theme Accent
+  const [history, setHistory] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('pandofy_history') || '[]');
+    } catch {
+      return [];
+    }
+  });
+  const [themeAccent, setThemeAccent] = useState(() => localStorage.getItem('pandofy_theme_color') || '#FF6600');
+  const [analyserNode, setAnalyserNode] = useState(null);
+
   // Backward compat alias
   const isRepeat = repeatMode !== 'off';
 
@@ -347,6 +358,7 @@ export const AppProvider = ({ children }) => {
       
       audioContextRef.current = ctx;
       analyserRef.current = analyser;
+      setAnalyserNode(analyser); // set state reactively
       sourceRef.current = source;
       isAudioContextInitializedRef.current = true;
       console.log("AudioContext initiated");
@@ -395,6 +407,14 @@ export const AppProvider = ({ children }) => {
       setQueue([track]);
       setQueueIndex(0);
     }
+
+    // Enregistrer dans l'historique de lecture
+    setHistory(prev => {
+      const filtered = prev.filter(t => t.id !== track.id);
+      const next = [track, ...filtered].slice(0, 50);
+      localStorage.setItem('pandofy_history', JSON.stringify(next));
+      return next;
+    });
   };
 
   const nextTrack = () => {
@@ -778,6 +798,37 @@ export const AppProvider = ({ children }) => {
     return `${m}:${s}`;
   };
 
+  // Handle simulated OAuth popups callback messages
+  useEffect(() => {
+    const handleOAuthMessage = (event) => {
+      if (event.data?.type === 'oauth-success') {
+        const { data } = event.data;
+        if (data.token) {
+          localStorage.setItem('pandofy_token', data.token);
+          setUser(data);
+          localStorage.setItem('pandofy_session_user', data.username);
+          setShowAuthModal(false);
+          triggerToast(`🔓 Connecté avec succès via OAuth, ${data.displayName} !`);
+          refreshData();
+        }
+      }
+    };
+    window.addEventListener('message', handleOAuthMessage);
+    return () => window.removeEventListener('message', handleOAuthMessage);
+  }, []);
+
+  const startOAuthFlow = (provider) => {
+    const width = 460;
+    const height = 620;
+    const left = window.screen.width / 2 - width / 2;
+    const top = window.screen.height / 2 - height / 2;
+    window.open(
+      `${API_URL}/api/auth/oauth-mock?provider=${provider}`,
+      `Connexion via ${provider}`,
+      `width=${width},height=${height},top=${top},left=${left},scrollbars=yes,resizable=yes`
+    );
+  };
+
   return (
     <AppContext.Provider value={{
       activeTab,
@@ -786,8 +837,8 @@ export const AppProvider = ({ children }) => {
       setActivePlaylistId,
       showUploadModal,
       setShowUploadModal,
-    showSupportModal,
-    setShowSupportModal,
+      showSupportModal,
+      setShowSupportModal,
       showAuthModal,
       setShowAuthModal,
       showPaymentModal,
@@ -854,6 +905,7 @@ export const AppProvider = ({ children }) => {
       handleRegister,
       handleLogin,
       handleLogout,
+      startOAuthFlow,
       // Social
       toggleLike,
       deleteTrack,
@@ -869,14 +921,19 @@ export const AppProvider = ({ children }) => {
       // Messages
       markMessagesAsRead,
       // Visualizer
-      analyserNode: analyserRef.current,
+      analyserNode, // Now reactive state!
       initAudioCtx,
       // Server
       isServerActive,
       refreshData,
-    loadMoreTracks,
+      loadMoreTracks,
       // Utils
-      formatDuration
+      formatDuration,
+      // Newly Added Audit Values
+      history,
+      setHistory,
+      themeAccent,
+      setThemeAccent
     }}>
       {children}
     </AppContext.Provider>
