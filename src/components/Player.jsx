@@ -10,20 +10,27 @@ import {
 export default function Player({ onToggleQueue, showQueue }) {
   const {
     currentTrack, isPlaying, setIsPlaying, togglePlay, nextTrack, prevTrack,
-    volume, setVolume, muted, setMuted, currentTime, duration, seek,
+    volume, setVolume, muted, setMuted, currentTime, setCurrentTime, duration, setDuration, seek,
     isShuffle, toggleShuffle, repeatMode, cycleRepeat, user, toggleLike,
     analyserNode, formatDuration, audioRef, sleepTimer, setSleepTimer, queue, queueIndex,
   } = useContext(AppContext);
 
   const canvasRef = useRef(null);
   const playTracked = useRef(false);
-  const ytIframeRef = useRef(null);
+  const ytPlayerRef = useRef(null);
+  const [ytReady, setYtReady] = useState(false);
   const [sleepCountdown, setSleepCountdown] = useState('');
   const [showSleepMenu, setShowSleepMenu] = useState(false);
   const sleepIntervalRef = useRef(null);
   const [checkingUpdate, setCheckingUpdate] = useState(false);
+  const bufRef = useRef(null);
+  const [localTime, setLocalTime] = useState(0);
 
   const isYouTube = currentTrack?.audioUrl?.startsWith('yt:');
+
+  useEffect(() => {
+    setLocalTime(0);
+  }, [currentTrack]);
 
   const getYtId = (url) => {
     if (!url) return null;
@@ -33,37 +40,125 @@ export default function Player({ onToggleQueue, showQueue }) {
   };
   const ytId = isYouTube ? getYtId(currentTrack?.audioUrl) : null;
 
-  // Control YouTube iframe via postMessage
+  // Load YouTube Iframe API
   useEffect(() => {
-    if (!isYouTube || !ytIframeRef.current) return;
-    const msg = isPlaying
-      ? JSON.stringify({ event: 'command', func: 'playVideo', args: [] })
-      : JSON.stringify({ event: 'command', func: 'pauseVideo', args: [] });
-    try { ytIframeRef.current.contentWindow?.postMessage(msg, '*'); } catch {}
-  }, [isPlaying, isYouTube]);
+    if (!window.YT) {
+      const tag = document.createElement('script');
+      tag.src = 'https://www.youtube.com/iframe_api';
+      const firstScriptTag = document.getElementsByTagName('script')[0];
+      firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+    }
+  }, []);
 
-  // Sync YouTube volume
+  // Initialize YouTube Player
   useEffect(() => {
-    if (!isYouTube || !ytIframeRef.current) return;
-    const vol = muted ? 0 : Math.round(volume * 100);
-    try {
-      ytIframeRef.current.contentWindow?.postMessage(
-        JSON.stringify({ event: 'command', func: 'setVolume', args: [vol] }), '*'
-      );
-    } catch {}
-  }, [volume, muted, isYouTube]);
-
-  // Listen for YouTube end event
-  useEffect(() => {
-    const handler = (e) => {
-      try {
-        const data = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
-        if (data?.event === 'infoDelivery' && data?.info?.playerState === 0) nextTrack();
-      } catch {}
+    let checkInterval;
+    const initPlayer = () => {
+      if (window.YT && window.YT.Player) {
+        if (!document.getElementById('yt-player-container')) return;
+        try {
+          ytPlayerRef.current = new window.YT.Player('yt-player-container', {
+            height: '200',
+            width: '300',
+            playerVars: {
+              controls: 0,
+              disablekb: 1,
+              fs: 0,
+              modestbranding: 1,
+              rel: 0,
+              showinfo: 0,
+              origin: window.location.origin
+            },
+            events: {
+              onReady: () => {
+                setYtReady(true);
+              },
+              onStateChange: (event) => {
+                if (event.data === 0) {
+                  nextTrack();
+                }
+              }
+            }
+          });
+        } catch (err) {
+          console.error("Failed to init YouTube player:", err);
+        }
+      }
     };
-    window.addEventListener('message', handler);
-    return () => window.removeEventListener('message', handler);
-  }, [nextTrack]);
+
+    checkInterval = setInterval(() => {
+      if (window.YT && window.YT.Player && document.getElementById('yt-player-container')) {
+        clearInterval(checkInterval);
+        initPlayer();
+      }
+    }, 200);
+
+    return () => {
+      clearInterval(checkInterval);
+    };
+  }, []);
+
+  // Sync YouTube track change
+  useEffect(() => {
+    if (!isYouTube || !ytId || !ytReady || !ytPlayerRef.current) {
+      if (!isYouTube && ytReady && ytPlayerRef.current && typeof ytPlayerRef.current.pauseVideo === 'function') {
+        try { ytPlayerRef.current.pauseVideo(); } catch {}
+      }
+      return;
+    }
+    try {
+      if (isPlaying) {
+        ytPlayerRef.current.loadVideoById(ytId);
+      } else {
+        ytPlayerRef.current.cueVideoById(ytId);
+      }
+      ytPlayerRef.current.setVolume(muted ? 0 : Math.round(volume * 100));
+    } catch (err) {
+      console.error("YouTube load error:", err);
+    }
+  }, [ytId, ytReady]);
+
+  // Sync YouTube play/pause
+  useEffect(() => {
+    if (!isYouTube || !ytReady || !ytPlayerRef.current) return;
+    try {
+      if (isPlaying) {
+        if (typeof ytPlayerRef.current.playVideo === 'function') ytPlayerRef.current.playVideo();
+      } else {
+        if (typeof ytPlayerRef.current.pauseVideo === 'function') ytPlayerRef.current.pauseVideo();
+      }
+    } catch (err) {
+      console.error("YouTube play/pause sync error:", err);
+    }
+  }, [isPlaying, isYouTube, ytReady]);
+
+  // Sync YouTube volume/mute
+  useEffect(() => {
+    if (!isYouTube || !ytReady || !ytPlayerRef.current) return;
+    try {
+      if (typeof ytPlayerRef.current.setVolume === 'function') {
+        ytPlayerRef.current.setVolume(muted ? 0 : Math.round(volume * 100));
+      }
+    } catch (err) {
+      console.error("YouTube volume sync error:", err);
+    }
+  }, [volume, muted, isYouTube, ytReady]);
+
+  // Track YouTube current time and duration
+  useEffect(() => {
+    if (!isYouTube || !isPlaying || !ytReady || !ytPlayerRef.current) return;
+    const interval = setInterval(() => {
+      try {
+        if (ytPlayerRef.current && typeof ytPlayerRef.current.getCurrentTime === 'function') {
+          const time = ytPlayerRef.current.getCurrentTime();
+          const dur = ytPlayerRef.current.getDuration();
+          setLocalTime(time);
+          if (dur) setDuration(dur);
+        }
+      } catch {}
+    }, 250);
+    return () => clearInterval(interval);
+  }, [isYouTube, isPlaying, ytReady]);
 
   // Canvas visualizer
   useEffect(() => {
@@ -72,13 +167,18 @@ export default function Player({ onToggleQueue, showQueue }) {
     const ctx = canvas.getContext('2d');
     let animId;
     const draw = () => {
-      animId = requestAnimationFrame(draw);
+      if (isPlaying) {
+        animId = requestAnimationFrame(draw);
+      }
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       const count = 16, bw = 3, gap = 2;
       const startX = (canvas.width - count * (bw + gap)) / 2;
       let data = [];
       if (analyserNode && isPlaying && !isYouTube) {
-        const buf = new Uint8Array(analyserNode.frequencyBinCount);
+        if (!bufRef.current || bufRef.current.length !== analyserNode.frequencyBinCount) {
+          bufRef.current = new Uint8Array(analyserNode.frequencyBinCount);
+        }
+        const buf = bufRef.current;
         analyserNode.getByteFrequencyData(buf);
         if (buf.some(v => v > 0)) {
           for (let i = 0; i < count; i++) data.push(buf[Math.floor((i / count) * buf.length * 0.7)]);
@@ -93,7 +193,7 @@ export default function Player({ onToggleQueue, showQueue }) {
             v = Math.max(0, Math.min(1, v + (Math.random() - 0.5) * 0.15));
             data.push(Math.floor(v * 255 * (muted ? 0.05 : 0.2 + volume * 0.8)));
           } else {
-            data.push(4 + Math.sin(Date.now() * 0.002 + i) * 2);
+            data.push(15);
           }
         }
       }
@@ -112,17 +212,18 @@ export default function Player({ onToggleQueue, showQueue }) {
     return () => cancelAnimationFrame(animId);
   }, [isPlaying, volume, muted, analyserNode, isYouTube]);
 
-  // Play tracking
-  useEffect(() => { if (!currentTrack) playTracked.current = false; }, [currentTrack]);
+  // Sync HTML5 audio currentTime to local state
   useEffect(() => {
-    if (!currentTrack || !user || isYouTube) return;
-    if (currentTime > 30 && !playTracked.current) {
-      playTracked.current = true;
-      authFetch(`${API_BASE}/api/tracks/${currentTrack.id}/play`, {
-        method: 'POST', body: JSON.stringify({ username: user.username })
-      }).catch(() => {});
-    }
-  }, [currentTime, currentTrack, user, isYouTube]);
+    const audio = audioRef?.current;
+    if (!audio) return;
+    const updateTime = () => {
+      if (!isYouTube) {
+        setLocalTime(audio.currentTime);
+      }
+    };
+    audio.addEventListener('timeupdate', updateTime);
+    return () => audio.removeEventListener('timeupdate', updateTime);
+  }, [isYouTube, audioRef]);
 
   // Media Session
   useEffect(() => {
@@ -180,10 +281,25 @@ export default function Player({ onToggleQueue, showQueue }) {
     return `${Math.floor(s / 60)}:${Math.floor(s % 60).toString().padStart(2, '0')}`;
   };
 
+  const handleSeek = (time) => {
+    if (isYouTube && ytPlayerRef.current && typeof ytPlayerRef.current.seekTo === 'function') {
+      try {
+        ytPlayerRef.current.seekTo(time, true);
+        setLocalTime(time);
+      } catch (err) {
+        console.error("YouTube seek error:", err);
+      }
+    } else {
+      seek(time);
+      setLocalTime(time);
+    }
+  };
+
   const handleProgressClick = (e) => {
-    if (!duration || isYouTube) return;
+    if (!duration) return;
     const rect = e.currentTarget.getBoundingClientRect();
-    seek(((e.clientX - rect.left) / rect.width) * duration);
+    const clickTime = ((e.clientX - rect.left) / rect.width) * duration;
+    handleSeek(clickTime);
   };
 
   const handleVolumeMouseDown = (e) => {
@@ -201,34 +317,15 @@ export default function Player({ onToggleQueue, showQueue }) {
 
   const isLiked = currentTrack && user && user.likedTracks?.map(String).includes(String(currentTrack.id));
   const upcomingCount = queue.length > 0 ? Math.max(0, queue.length - queueIndex - 1) : 0;
-  const progress = duration > 0 && !isYouTube ? (currentTime / duration) * 100 : 0;
+  const progress = duration > 0 ? (localTime / duration) * 100 : 0;
 
   return (
     <footer className="player">
-      {/* YouTube audio iframe - autoplay enabled via Electron policy */}
-      {isYouTube && ytId && (
-        <iframe
-          key={ytId}
-          ref={ytIframeRef}
-          src={`https://www.youtube.com/embed/${ytId}?autoplay=1&enablejsapi=1&controls=0&playsinline=1&rel=0&modestbranding=1`}
-          style={{ position: 'fixed', bottom: 70, right: 4, width: 4, height: 4, opacity: 0.02, pointerEvents: 'none', border: 'none', zIndex: 1 }}
-          allow="autoplay; encrypted-media; picture-in-picture; web-share"
-          title="yt-audio"
-          onLoad={() => {
-            // Send play command after iframe loads
-            setTimeout(() => {
-              try {
-                ytIframeRef.current?.contentWindow?.postMessage(
-                  JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*'
-                );
-                ytIframeRef.current?.contentWindow?.postMessage(
-                  JSON.stringify({ event: 'command', func: 'setVolume', args: [muted ? 0 : Math.round(volume * 100)] }), '*'
-                );
-              } catch {}
-            }, 800);
-          }}
-        />
-      )}
+      {/* Hidden container for YouTube Player API */}
+      {/* Off-screen container for YouTube Player API */}
+      <div style={{ position: 'fixed', top: -1000, left: -1000, width: 300, height: 200, pointerEvents: 'none', zIndex: -1000 }}>
+        <div id="yt-player-container" />
+      </div>
 
       {/* Left: Track info */}
       <div className="player-track-info">
@@ -274,11 +371,11 @@ export default function Player({ onToggleQueue, showQueue }) {
 
         {/* Progress bar */}
         <div className="player-progress-wrapper">
-          <div className="player-time">{fmt(currentTime)}</div>
+          <div className="player-time">{fmt(localTime)}</div>
           <div className="player-progress-bar" onClick={handleProgressClick}
-            style={{ flex: 1, height: 4, background: 'rgba(255,255,255,0.12)', borderRadius: 2, cursor: isYouTube ? 'default' : 'pointer', position: 'relative', margin: '0 8px' }}>
+            style={{ flex: 1, height: 4, background: 'rgba(255,255,255,0.12)', borderRadius: 2, cursor: 'pointer', position: 'relative', margin: '0 8px' }}>
             <div style={{ height: '100%', width: `${progress}%`, background: 'linear-gradient(to right, #FF6600, #CC44FF)', borderRadius: 2, position: 'relative', transition: 'width 0.1s linear' }}>
-              {!isYouTube && <div style={{ position: 'absolute', right: -5, top: '50%', transform: 'translateY(-50%)', width: 10, height: 10, borderRadius: '50%', background: '#fff', boxShadow: '0 0 4px rgba(255,102,0,0.8)' }} />}
+              <div style={{ position: 'absolute', right: -5, top: '50%', transform: 'translateY(-50%)', width: 10, height: 10, borderRadius: '50%', background: '#fff', boxShadow: '0 0 4px rgba(255,102,0,0.8)' }} />
             </div>
           </div>
           <div className="player-time player-time-total">{fmt(duration)}</div>

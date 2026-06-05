@@ -184,7 +184,7 @@ function AppContent() {
   } : {};
 
   return (
-    <div className="app-shell" style={appStyle}>
+    <div className="app-container" style={appStyle}>
       <IntroSplash />
 
       {/* Toast notification */}

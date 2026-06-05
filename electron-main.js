@@ -5,6 +5,11 @@ import path from 'path';
 import http from 'http';
 import { fileURLToPath } from 'url';
 
+// Optimize background performance & prevent Chromium low-power CPU throttling
+app.commandLine.appendSwitch('disable-renderer-backgrounding');
+app.commandLine.appendSwitch('disable-background-timer-throttling');
+app.commandLine.appendSwitch('disable-backgrounding-occluded-windows');
+
 const gotTheLock = app.requestSingleInstanceLock();
 
 if (!gotTheLock) { app.quit(); } else {
@@ -75,7 +80,13 @@ if (!gotTheLock) { app.quit(); } else {
   ipcMain.on('window-minimize', () => { const w = BrowserWindow.getFocusedWindow(); if(w) w.minimize(); });
   ipcMain.on('window-toggle-fullscreen', () => { const w = BrowserWindow.getFocusedWindow(); if(w) w.setFullScreen(!w.isFullScreen()); });
   ipcMain.on('window-close', () => { const w = BrowserWindow.getFocusedWindow(); if(w) w.close(); });
-  ipcMain.on('open-website', (e, url) => shell.openExternal(url?.startsWith('https://') ? url : 'https://pandofyy.netlify.app'));
+  ipcMain.on('open-website', (e, url) => {
+    if (url?.startsWith('https://') || url?.startsWith('mailto:')) {
+      shell.openExternal(url);
+    } else {
+      shell.openExternal('https://pandofyy.netlify.app');
+    }
+  });
 
   app.on('second-instance', () => { const w = BrowserWindow.getAllWindows()[0]; if(w) { if(w.isMinimized()) w.restore(); w.focus(); } });
 

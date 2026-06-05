@@ -27,19 +27,10 @@ const UPLOADS_DIR = process.env.UPLOADS_DIR || path.join(__dirname, 'uploads');
 const USE_CLOUDINARY = !!process.env.CLOUDINARY_URL;
 if (!USE_CLOUDINARY && !fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 
-// ─── DATABASE (PostgreSQL) ────────────────────────────────────
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.DATABASE_URL?.includes('supabase') ? { rejectUnauthorized: false } : false
-});
+// ─── DATABASE (PostgreSQL or SQLite fallback) ─────────────────
+let dbQuery, dbGet, dbRun;
 
-// Helper functions
-const dbQuery = async (sql, params = []) => (await pool.query(sql, params)).rows;
-const dbGet = async (sql, params = []) => (await pool.query(sql, params)).rows[0] || null;
-const dbRun = async (sql, params = []) => await pool.query(sql, params);
-
-// ─── INIT TABLES ─────────────────────────────────────────────
-await pool.query(`
+const sqlInitSchema = `
   CREATE TABLE IF NOT EXISTS users (
     username      TEXT PRIMARY KEY,
     "displayName" TEXT,
@@ -107,7 +98,56 @@ await pool.query(`
     "paymentMethod" TEXT,
     status          TEXT
   );
-`);
+`;
+
+if (process.env.DATABASE_URL) {
+  console.log('[DATABASE] Mode PostgreSQL activé');
+  const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: process.env.DATABASE_URL?.includes('supabase') ? { rejectUnauthorized: false } : false
+  });
+  dbQuery = async (sql, params = []) => (await pool.query(sql, params)).rows;
+  dbGet = async (sql, params = []) => (await pool.query(sql, params)).rows[0] || null;
+  dbRun = async (sql, params = []) => await pool.query(sql, params);
+  
+  await pool.query(sqlInitSchema);
+} else {
+  console.log('[DATABASE] Mode SQLite (local) activé');
+  const Database = (await import('better-sqlite3')).default;
+  const SQLITE_FILE = path.join(__dirname, 'server', 'pandofy.db');
+  const sqliteDb = new Database(SQLITE_FILE);
+  
+  const translateSql = (sql) => {
+    return sql.replace(/\$\d+/g, '?').replace(/ILIKE/gi, 'LIKE');
+  };
+  
+  dbQuery = async (sql, params = []) => {
+    try {
+      return sqliteDb.prepare(translateSql(sql)).all(...params);
+    } catch (err) {
+      console.error("[SQLITE ERROR] dbQuery:", err, "\nSQL:", translateSql(sql));
+      throw err;
+    }
+  };
+  dbGet = async (sql, params = []) => {
+    try {
+      return sqliteDb.prepare(translateSql(sql)).get(...params) || null;
+    } catch (err) {
+      console.error("[SQLITE ERROR] dbGet:", err, "\nSQL:", translateSql(sql));
+      throw err;
+    }
+  };
+  dbRun = async (sql, params = []) => {
+    try {
+      return sqliteDb.prepare(translateSql(sql)).run(...params);
+    } catch (err) {
+      console.error("[SQLITE ERROR] dbRun:", err, "\nSQL:", translateSql(sql));
+      throw err;
+    }
+  };
+  
+  sqliteDb.exec(sqlInitSchema);
+}
 
 // ─── SEED DEFAULT USERS ──────────────────────────────────────
 const userCount = await dbGet('SELECT COUNT(*) as c FROM users');
@@ -556,7 +596,7 @@ app.post('/api/support', async (req, res) => {
     const body = `Catégorie: ${category || 'Non spécifié'}\nUtilisateur: ${username}\nEmail: ${email || 'Non renseigné'}\n\nMessage:\n${message}`;
     await dbRun(
       `INSERT INTO messages (id, username, sender, subject, body, date, read) VALUES ($1,$2,$3,$4,$5,$6,0)`,
-      [msgId, 'cdeveloppeur', email || `${username}@pandofy.app`, `[SUPPORT] ${category || 'Message'}`, body, Date.now()]
+      [msgId, 'pandofy', email || `${username}@pandofy.app`, `[SUPPORT] ${category || 'Message'}`, body, Date.now()]
     );
     res.json({ success: true });
   } catch (err) { console.error(err); res.status(500).json({ error: 'Erreur envoi support' }); }

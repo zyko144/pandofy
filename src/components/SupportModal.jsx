@@ -1,6 +1,7 @@
 import React, { useState, useContext } from 'react';
 import { AppContext } from '../context/AppContext';
 import { X, MessageCircle, Mail, ChevronRight } from 'lucide-react';
+import { API_BASE } from '../utils/api';
 
 const SUPPORT_EMAIL = 'steamappspro@gmail.com';
 
@@ -17,21 +18,51 @@ export default function SupportModal() {
   const [step, setStep] = useState(1);
   const [category, setCategory] = useState(null);
   const [message, setMessage] = useState('');
+  const [name, setName] = useState(user?.displayName || user?.username || '');
+  const [email, setEmail] = useState(user?.email || '');
+
+  useEffect(() => {
+    if (showSupportModal && user) {
+      setName(user.displayName || user.username || '');
+      setEmail(user.email || '');
+    }
+  }, [showSupportModal, user]);
 
   if (!showSupportModal) return null;
 
   const handleClose = () => { setShowSupportModal(false); setStep(1); setCategory(null); setMessage(''); };
 
-  const handleSend = () => {
-    if (!message.trim()) return;
+  const handleSend = async () => {
+    if (!message.trim() || !email.trim() || !name.trim()) return;
+    
+    // 1. Send to local app database inbox
+    try {
+      const payload = {
+        category: category?.label || 'Support',
+        message: message,
+        email: email,
+        username: name
+      };
+      await fetch(`${API_BASE}/api/support`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+    } catch (err) {
+      console.error("Support DB log error:", err);
+    }
+
+    // 2. Open default mail client pre-filled
     const subject = encodeURIComponent(`[Pandofy Support] ${category?.label || 'Message'}`);
-    const body = encodeURIComponent(`Utilisateur: ${user?.username || 'Non connecté'}\nCatégorie: ${category?.label}\n\nMessage:\n${message}`);
+    const body = encodeURIComponent(`Nom/Pseudo: ${name}\nE-mail de contact: ${email}\nCatégorie: ${category?.label}\n\nMessage:\n${message}`);
     const mailto = `mailto:${SUPPORT_EMAIL}?subject=${subject}&body=${body}`;
+    
     if (window.electronAPI?.openExternalLink) {
       window.electronAPI.openExternalLink(mailto);
     } else {
       window.open(mailto, '_blank');
     }
+    
     handleClose();
   };
 
@@ -73,14 +104,41 @@ export default function SupportModal() {
             <button onClick={() => setStep(1)} style={{ background: 'none', border: 'none', color: 'var(--color-primary)', cursor: 'pointer', fontSize: '0.85rem', marginBottom: 16 }}>
               ← {category?.icon} {category?.label}
             </button>
-            <div className="modal-form-group">
-              <label className="modal-label">Votre message</label>
-              <textarea className="modal-input" placeholder="Décrivez votre problème en détail..." value={message}
-                onChange={e => setMessage(e.target.value)}
-                style={{ minHeight: 120, resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.5 }} />
+            <div className="modal-form-group" style={{ marginBottom: 12 }}>
+              <label className="modal-label">Nom / Pseudo</label>
+              <input 
+                type="text" 
+                className="modal-input" 
+                placeholder="Votre nom ou pseudo..." 
+                value={name}
+                onChange={e => setName(e.target.value)} 
+                required 
+              />
             </div>
-            <button onClick={handleSend} disabled={!message.trim()} className="btn-primary modal-submit-btn"
-              style={{ opacity: !message.trim() ? 0.6 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+            <div className="modal-form-group" style={{ marginBottom: 12 }}>
+              <label className="modal-label">Adresse e-mail</label>
+              <input 
+                type="email" 
+                className="modal-input" 
+                placeholder="votre.email@exemple.com..." 
+                value={email}
+                onChange={e => setEmail(e.target.value)} 
+                required 
+              />
+            </div>
+            <div className="modal-form-group" style={{ marginBottom: 16 }}>
+              <label className="modal-label">Votre message</label>
+              <textarea 
+                className="modal-input" 
+                placeholder="Décrivez votre problème en détail..." 
+                value={message}
+                onChange={e => setMessage(e.target.value)}
+                style={{ minHeight: 100, resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.5 }} 
+                required
+              />
+            </div>
+            <button onClick={handleSend} disabled={!message.trim() || !email.trim() || !name.trim()} className="btn-primary modal-submit-btn"
+              style={{ opacity: (!message.trim() || !email.trim() || !name.trim()) ? 0.6 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
               <Mail size={16} /> Envoyer par email
             </button>
           </>

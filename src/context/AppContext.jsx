@@ -245,16 +245,40 @@ export const AppProvider = ({ children }) => {
       } catch (err) {
         console.warn("Polling error:", err);
       }
-    }, 2500);
+    }, 15000);
 
     return () => clearInterval(interval);
   }, [user]);
+
+  const playTrackedRef = useRef(false);
+  const lastSecondRef = useRef(-1);
+
+  useEffect(() => {
+    playTrackedRef.current = false;
+    lastSecondRef.current = -1;
+  }, [currentTrack]);
 
   // Audio handlers
   useEffect(() => {
     const audio = audioRef.current;
     
-    const onTimeUpdate = () => setCurrentTime(audio.currentTime);
+    const onTimeUpdate = () => {
+      // 1. Play tracking
+      if (audio.currentTime > 30 && !playTrackedRef.current && currentTrack && !currentTrack.audioUrl?.startsWith('yt:')) {
+        playTrackedRef.current = true;
+        authFetch(`${API_BASE}/api/tracks/${currentTrack.id}/play`, {
+          method: 'POST',
+          body: JSON.stringify({ username: user?.username })
+        }).catch(() => {});
+      }
+      
+      // 2. Throttle context updates to once per 2 seconds to eliminate React lag
+      const sec = Math.floor(audio.currentTime);
+      if (sec % 2 === 0 && sec !== lastSecondRef.current) {
+        lastSecondRef.current = sec;
+        setCurrentTime(audio.currentTime);
+      }
+    };
     const onDurationChange = () => setDuration(audio.duration || 0);
     const onEnded = () => handleTrackEnd();
 
@@ -267,7 +291,7 @@ export const AppProvider = ({ children }) => {
       audio.removeEventListener('durationchange', onDurationChange);
       audio.removeEventListener('ended', onEnded);
     };
-  }, [queue, queueIndex, repeatMode, isShuffle, shuffledIndices, shufflePos]);
+  }, [queue, queueIndex, repeatMode, isShuffle, shuffledIndices, shufflePos, currentTrack, user]);
 
   useEffect(() => {
     audioRef.current.volume = muted ? 0 : volume;
@@ -790,7 +814,9 @@ export const AppProvider = ({ children }) => {
       muted,
       setMuted,
       currentTime,
+      setCurrentTime,
       duration,
+      setDuration,
       queue,
       queueIndex,
       // Shuffle
