@@ -453,10 +453,11 @@ app.get('/api/admin/clear-tracks', async (req, res) => {
 // ─── VERSION ─────────────────────────────────────────────────
 app.get('/api/version', (req, res) => {
   res.json({
-    version: '2.2.1',
+    version: '2.2.2',
     changelog: [
+      '📍 Logo de démarrage recentré mathématiquement',
+      '⚡ Latence audio de démarrage totalement éliminée',
       '🎵 Nouveau Logo de démarrage (croche orange unique) sans cercle',
-      '⚡ Latence audio éliminée (lancement instantané de la lecture)',
       '🎵 Import YouTube et Lecture optimisés',
       '✨ Animation épurée et Logo Cinématique au démarrage',
       '⚡ Fluidité extrême et réduction de la latence (optimisé pour tous les PC)',
@@ -466,6 +467,19 @@ app.get('/api/version', (req, res) => {
       '🛡️ Stabilité renforcée : Résolution des conflits de ports au démarrage',
     ]
   });
+});
+
+// ─── DOWNLOAD SETUP ──────────────────────────────────────────
+app.get('/download', (req, res) => {
+  const distDesktopDir = path.join(__dirname, 'dist-desktop');
+  if (fs.existsSync(distDesktopDir)) {
+    const files = fs.readdirSync(distDesktopDir);
+    const setupFile = files.find(f => f.startsWith('Pandofy Setup') && f.endsWith('.exe'));
+    if (setupFile) {
+      return res.download(path.join(distDesktopDir, setupFile));
+    }
+  }
+  res.status(404).send('Setup file not found');
 });
 
 // ─── USERS ───────────────────────────────────────────────────

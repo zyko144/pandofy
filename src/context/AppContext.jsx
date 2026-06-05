@@ -91,10 +91,58 @@ export const AppProvider = ({ children }) => {
   const sourceRef = useRef(null);
   const isAudioContextInitializedRef = useRef(false);
 
-  // Set preload=auto on mount
+  // Pre-initialize AudioContext and pipeline on mount to eliminate runtime reconstruction latency
   useEffect(() => {
     if (audioRef.current) audioRef.current.preload = 'auto';
     if (audioBRef.current) audioBRef.current.preload = 'auto';
+
+    const initPipeline = () => {
+      if (isAudioContextInitializedRef.current) return;
+      try {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        const ctx = new AudioContextClass();
+        const analyser = ctx.createAnalyser();
+        analyser.fftSize = 64;
+        
+        const source = ctx.createMediaElementSource(audioRef.current);
+        source.connect(analyser);
+        analyser.connect(ctx.destination);
+        
+        audioContextRef.current = ctx;
+        analyserRef.current = analyser;
+        setAnalyserNode(analyser);
+        sourceRef.current = source;
+        isAudioContextInitializedRef.current = true;
+        console.log("AudioContext and Web Audio pipeline pre-connected on mount");
+      } catch (e) {
+        console.warn("AudioContext mount-init error:", e);
+      }
+    };
+
+    // Pre-initialize pipeline right away (starts in suspended state, which is normal)
+    initPipeline();
+
+    // Set up a global click/key listener to activate (resume) the AudioContext as early as possible
+    const handleGesture = () => {
+      if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
+        audioContextRef.current.resume().then(() => {
+          console.log("AudioContext active via early gesture");
+          document.removeEventListener('click', handleGesture);
+          document.removeEventListener('keydown', handleGesture);
+        }).catch(() => {});
+      } else if (audioContextRef.current && audioContextRef.current.state === 'running') {
+        document.removeEventListener('click', handleGesture);
+        document.removeEventListener('keydown', handleGesture);
+      }
+    };
+
+    document.addEventListener('click', handleGesture);
+    document.addEventListener('keydown', handleGesture);
+
+    return () => {
+      document.removeEventListener('click', handleGesture);
+      document.removeEventListener('keydown', handleGesture);
+    };
   }, []);
 
   // Persist preferences to localStorage

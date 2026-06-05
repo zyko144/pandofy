@@ -27,8 +27,8 @@ export default function IntroSplash() {
 
   return (
     <div className={`splash-container ${faded ? 'fade-out' : ''}`}>
-      <div className="splash-content">
-        <div className="logo-note-wrapper">
+      <div className="splash-content" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="logo-note-wrapper" style={{ margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <svg className="logo-note-3d" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
             {/* Eighth note (croche) logo without circle, matching the user's uploaded image */}
             <path d="M51 25 H55 C63 30 69 42 65 54 C60 41 55 36 55 36 V67 C55 67 50 73 42 78 C34 83 29 81 29 73 C29 65 34 58 40 58 C46 58 49 60 51 62.5 V25 Z" fill="#FF6600" />

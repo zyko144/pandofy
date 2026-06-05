@@ -1,7 +1,7 @@
 {
   "name": "pandofy",
   "private": true,
-  "version": "2.2.1",
+  "version": "2.2.2",
   "type": "module",
   "main": "electron-main.js",
   "description": "Pandofy - Plateforme de streaming musical communautaire",
