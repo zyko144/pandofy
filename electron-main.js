@@ -5,6 +5,7 @@ import path from 'path';
 import http from 'http';
 import net from 'net';
 import { fileURLToPath } from 'url';
+import { fork } from 'child_process';
 
 // Optimize background performance & prevent Chromium low-power CPU throttling
 app.commandLine.appendSwitch('disable-renderer-backgrounding');
@@ -40,7 +41,7 @@ if (!gotTheLock) {
       let attempts = 0;
       const try_ = () => {
         attempts++;
-        const req = http.get(`http://localhost:${PORT}/api/version`, res => { res.resume(); resolve(true); });
+        const req = http.get(`http://127.0.0.1:${PORT}/api/version`, res => { res.resume(); resolve(true); });
         req.on('error', () => { if (attempts < retries) setTimeout(try_, interval); else resolve(false); });
         req.setTimeout(400, () => req.destroy());
       };
@@ -79,7 +80,7 @@ if (!gotTheLock) {
     win.once('ready-to-show', () => win.show());
 
     // Load from local HTTP server — YouTube iframes work from http://localhost
-    win.loadURL(`http://localhost:${PORT}`).catch(() => {
+    win.loadURL(`http://127.0.0.1:${PORT}`).catch(() => {
       win.loadFile(path.join(__dirname, 'dist', 'index.html'));
     });
 
@@ -120,8 +121,18 @@ if (!gotTheLock) {
     process.env.PORT = PORT;
     console.log(`[PANDOFY] Binding to free port: ${PORT}`);
 
-    // Import and start local server
-    import('./server.js').catch(err => console.error('[SERVER]', err));
+    // Spawn server.js as a child process (bypasses Node ESM ASAR loader bugs)
+    const serverPath = path.join(__dirname, 'server.js');
+    console.log(`[PANDOFY] Spawning local server process: ${serverPath}`);
+    const serverProcess = fork(serverPath, [], {
+      env: { ...process.env, PORT: PORT.toString() },
+      stdio: 'inherit'
+    });
+
+    app.on('will-quit', () => {
+      console.log('[PANDOFY] Killing server process on app quit');
+      serverProcess.kill();
+    });
 
     await waitForServer();
     createWindow();

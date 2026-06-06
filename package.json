@@ -1,7 +1,7 @@
 {
   "name": "pandofy",
   "private": true,
-  "version": "2.2.3",
+  "version": "2.2.7",
   "type": "module",
   "main": "electron-main.js",
   "description": "Pandofy - Plateforme de streaming musical communautaire",
@@ -51,6 +51,7 @@
     "appId": "com.pandofy.app",
     "productName": "pandofy",
     "icon": "build/icon.png",
+    "asar": false,
     "publish": {
       "provider": "github",
       "owner": "zyko144",
