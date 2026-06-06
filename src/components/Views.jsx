@@ -379,7 +379,8 @@ function SearchView() {
 // LIBRARY VIEW
 // -------------------------------------------------------------
 function LibraryView() {
-  const { playlists, user, tracks, playTrack, setActivePlaylistId, setActiveTab } = useContext(AppContext);
+  const { playlists, user, tracks, playTrack, setActivePlaylistId, setActiveTab, deletePlaylist } = useContext(AppContext);
+  const [confirmDeletePlaylist, setConfirmDeletePlaylist] = useState(null);
 
   const userPlaylists = playlists.filter(p => !user || p.userId === user.username);
   const artistTracks = tracks.filter(t => user && t.artistId === user.username);
@@ -390,6 +391,7 @@ function LibraryView() {
   };
 
   return (
+    <>
     <div className="scrollable" style={{ padding: 32 }}>
       <h1 className="section-title" style={{ marginBottom: 24, fontSize: '2rem' }}>Votre Bibliothèque</h1>
 
@@ -423,7 +425,18 @@ function LibraryView() {
                   onError={(e) => e.target.src = "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=300&auto=format&fit=crop&q=60"}
                 />
               </div>
-              <div className="music-card-title">{playlist.name}</div>
+              <div className="music-card-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{playlist.name}</span>
+                {user && playlist.userId === user.username && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setConfirmDeletePlaylist({ id: playlist.id, name: playlist.name }); }}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#FF4400', padding: '4px', display: 'flex', alignItems: 'center', flexShrink: 0 }}
+                    title="Supprimer cette playlist"
+                  >
+                    <Trash size={14} />
+                  </button>
+                )}
+              </div>
               <div className="music-card-artist">
                 {playlist.trackIds.length} {playlist.trackIds.length > 1 ? 'titres' : 'titre'}
               </div>
@@ -461,6 +474,22 @@ function LibraryView() {
         </>
       )}
     </div>
+
+    {/* Modal confirmation suppression playlist */}
+    {confirmDeletePlaylist && (
+      <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+        <div style={{ background: '#1A1A1A', border: '1px solid rgba(255,68,0,0.3)', borderRadius: 16, padding: 32, maxWidth: 380, width: '90%', textAlign: 'center' }}>
+          <div style={{ fontSize: '2.5rem', marginBottom: 12 }}>🗑️</div>
+          <h3 style={{ color: '#fff', marginBottom: 8, fontFamily: 'var(--font-display)' }}>Supprimer cette playlist ?</h3>
+          <p style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem', marginBottom: 24 }}>"{confirmDeletePlaylist.name}" sera supprimée définitivement pour tous les utilisateurs.</p>
+          <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+            <button onClick={() => setConfirmDeletePlaylist(null)} style={{ padding: '10px 24px', borderRadius: 9999, border: '1px solid rgba(255,255,255,0.15)', background: 'transparent', color: '#fff', cursor: 'pointer', fontWeight: 600 }}>Annuler</button>
+            <button onClick={() => { deletePlaylist(confirmDeletePlaylist.id); setConfirmDeletePlaylist(null); }} style={{ padding: '10px 24px', borderRadius: 9999, border: 'none', background: '#FF4400', color: '#fff', cursor: 'pointer', fontWeight: 700 }}>Supprimer</button>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   );
 }
 
@@ -1074,11 +1103,14 @@ function PlaylistDetailView() {
     togglePlay, 
     toggleLike,
     deleteTrack,
-    formatDuration
+    formatDuration,
+    deletePlaylist,
+    setActiveTab
   } = useContext(AppContext);
 
   const [playlist, setPlaylist] = useState(null);
   const [playlistTracks, setPlaylistTracks] = useState([]);
+  const [confirmDeletePlaylist, setConfirmDeletePlaylist] = useState(null);
 
   useEffect(() => {
     if (activePlaylistId === 'liked') {
@@ -1118,6 +1150,7 @@ function PlaylistDetailView() {
   };
 
   return (
+    <>
     <div className="scrollable">
       <div className="playlist-detail-header">
         {playlist.isLikedList ? (
@@ -1154,6 +1187,16 @@ function PlaylistDetailView() {
         {playlistTracks.length > 0 && (
           <button className="playlist-play-btn" onClick={handlePlayPlaylist} title="Tout jouer">
             <Play size={24} fill="#000" color="#000" style={{ transform: 'translateX(1.5px)' }} />
+          </button>
+        )}
+        {!playlist.isLikedList && user && playlist.userId === user.username && (
+          <button
+            onClick={() => setConfirmDeletePlaylist({ id: activePlaylistId, name: playlist.name })}
+            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 20px', borderRadius: 9999, border: '1px solid rgba(255,68,0,0.4)', background: 'transparent', color: '#FF4400', cursor: 'pointer', fontWeight: 600, fontSize: '0.9rem' }}
+            title="Supprimer cette playlist"
+          >
+            <Trash size={16} />
+            Supprimer la playlist
           </button>
         )}
       </div>
@@ -1235,6 +1278,22 @@ function PlaylistDetailView() {
         )}
       </div>
     </div>
+
+    {/* Modal confirmation suppression playlist */}
+    {confirmDeletePlaylist && (
+      <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+        <div style={{ background: '#1A1A1A', border: '1px solid rgba(255,68,0,0.3)', borderRadius: 16, padding: 32, maxWidth: 380, width: '90%', textAlign: 'center' }}>
+          <div style={{ fontSize: '2.5rem', marginBottom: 12 }}>🗑️</div>
+          <h3 style={{ color: '#fff', marginBottom: 8, fontFamily: 'var(--font-display)' }}>Supprimer cette playlist ?</h3>
+          <p style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem', marginBottom: 24 }}>"{confirmDeletePlaylist.name}" sera supprimée définitivement pour tous les utilisateurs.</p>
+          <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+            <button onClick={() => setConfirmDeletePlaylist(null)} style={{ padding: '10px 24px', borderRadius: 9999, border: '1px solid rgba(255,255,255,0.15)', background: 'transparent', color: '#fff', cursor: 'pointer', fontWeight: 600 }}>Annuler</button>
+            <button onClick={() => { deletePlaylist(confirmDeletePlaylist.id); setConfirmDeletePlaylist(null); setActiveTab('library'); }} style={{ padding: '10px 24px', borderRadius: 9999, border: 'none', background: '#FF4400', color: '#fff', cursor: 'pointer', fontWeight: 700 }}>Supprimer</button>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   );
 }
 

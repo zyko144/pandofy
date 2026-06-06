@@ -83,8 +83,16 @@ export const AppProvider = ({ children }) => {
   // Backward compat alias
   const isRepeat = repeatMode !== 'off';
 
-  const audioRef = useRef(new Audio());
-  const audioBRef = useRef(new Audio()); // second audio for crossfade
+  const audioRef = useRef(null);
+  const audioBRef = useRef(null); // second audio for crossfade
+  if (!audioRef.current) {
+    audioRef.current = new Audio();
+    audioRef.current.preload = 'auto';
+  }
+  if (!audioBRef.current) {
+    audioBRef.current = new Audio();
+    audioBRef.current.preload = 'auto';
+  }
   const crossfadeAnimRef = useRef(null);
   const audioContextRef = useRef(null);
   const analyserRef = useRef(null);
@@ -923,8 +931,11 @@ export const AppProvider = ({ children }) => {
     const height = 620;
     const left = window.screen.width / 2 - width / 2;
     const top = window.screen.height / 2 - height / 2;
+    const url = provider === 'google'
+      ? `${API_URL}/api/auth/google`
+      : `${API_URL}/api/auth/oauth-mock?provider=${provider}`;
     window.open(
-      `${API_URL}/api/auth/oauth-mock?provider=${provider}`,
+      url,
       `Connexion via ${provider}`,
       `width=${width},height=${height},top=${top},left=${left},scrollbars=yes,resizable=yes`
     );
