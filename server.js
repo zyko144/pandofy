@@ -219,7 +219,14 @@ const allowedOrigins = process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split('
 app.use(cors({ origin: allowedOrigins }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-if (!USE_CLOUDINARY) app.use('/uploads', express.static(UPLOADS_DIR));
+if (!USE_CLOUDINARY) {
+  app.use('/uploads', express.static(UPLOADS_DIR, {
+    setHeaders: (res, path) => {
+      res.setHeader('Accept-Ranges', 'bytes');
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    }
+  }));
+}
 
 // ─── JWT MIDDLEWARE ───────────────────────────────────────────
 function requireAuth(req, res, next) {
@@ -453,8 +460,13 @@ app.get('/api/admin/clear-tracks', async (req, res) => {
 // ─── VERSION ─────────────────────────────────────────────────
 app.get('/api/version', (req, res) => {
   res.json({
-    version: '2.2.3',
+    version: '2.2.7',
     changelog: [
+      '📦 Migration complète de l\'archive d\'exécution (désactivation ASAR pour stabiliser le chargeur Node ESM et SQLite native)',
+      '🛡️ Fix du démarrage du serveur local en processus séparé (correctif bug ASAR de chargement ESM et blocages de ports)',
+      '🌐 Remplacement des emojis de connexion sociale par les vrais logos de marque (Google, GitHub, Discord, Apple)',
+      '🔑 Connexion via de vrais comptes Google (OAuth 2.0) avec invite de sélection de compte',
+      '⚡ Élimination totale de la latence de chargement et de buffering audio',
       '🎨 Icône d\'application officielle personnalisée (croche orange 3D) sous Windows',
       '🏷️ Application renommée en pandofy (minuscules)',
       '📍 Logo de démarrage recentré mathématiquement',
@@ -476,7 +488,7 @@ app.get('/download', (req, res) => {
   const distDesktopDir = path.join(__dirname, 'dist-desktop');
   if (fs.existsSync(distDesktopDir)) {
     const files = fs.readdirSync(distDesktopDir);
-    const setupFile = files.find(f => f.startsWith('Pandofy Setup') && f.endsWith('.exe'));
+    const setupFile = files.find(f => f.toLowerCase().startsWith('pandofy setup') && f.endsWith('.exe'));
     if (setupFile) {
       return res.download(path.join(distDesktopDir, setupFile));
     }
@@ -558,6 +570,23 @@ app.post('/api/playlists/:id/add', requireAuth, async (req, res) => {
   } catch (err) { res.status(500).json({ error: 'Erreur ajout playlist' }); }
 });
 
+app.delete('/api/playlists/:id', requireAuth, async (req, res) => {
+  try {
+    const playlistId = parseInt(req.params.id);
+    const username = req.user.username;
+    const playlist = await dbGet('SELECT * FROM playlists WHERE id = $1', [playlistId]);
+    if (!playlist) return res.status(404).json({ error: 'Playlist introuvable' });
+    const ownerId = playlist.userId || playlist['userId'];
+    const userRow = await dbGet('SELECT * FROM users WHERE username = $1', [username.toLowerCase()]);
+    const isOwner = ownerId === username;
+    const isAdmin = userRow && (userRow.role === 'admin' || userRow.role === 'developer' || username === 'cdeveloppeur');
+    if (!isOwner && !isAdmin) return res.status(403).json({ error: 'Permission refusée.' });
+    await dbRun('DELETE FROM playlist_tracks WHERE "playlistId" = $1', [playlistId]);
+    await dbRun('DELETE FROM playlists WHERE id = $1', [playlistId]);
+    res.json({ success: true, deletedPlaylistId: playlistId });
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Erreur suppression playlist' }); }
+});
+
 // ─── PAYMENTS ────────────────────────────────────────────────
 app.post('/api/payments/subscribe', requireAuth, async (req, res) => {
   try {
@@ -625,6 +654,236 @@ app.post('/api/support', async (req, res) => {
     
     res.json({ success: true });
   } catch (err) { console.error(err); res.status(500).json({ error: 'Erreur envoi support' }); }
+});
+
+// ─── REAL GOOGLE OAUTH ───────────────────────────────────────
+app.get('/api/auth/google', (req, res) => {
+  const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+  const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
+  const redirectUri = `${req.protocol}://${req.get('host')}/api/auth/google/callback`;
+
+  if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
+    return res.send(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <title>Configuration Requise — Google OAuth</title>
+        <style>
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #0d0d0d;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+          }
+          .card {
+            background: #181818;
+            border-radius: 16px;
+            border: 1px solid rgba(255,102,0,0.2);
+            padding: 40px;
+            width: 480px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+          }
+          .logo {
+            font-size: 48px;
+            margin-bottom: 24px;
+            text-align: center;
+          }
+          h2 {
+            margin: 0 0 16px 0;
+            font-size: 22px;
+            font-weight: 800;
+            color: #FF6600;
+            text-align: center;
+          }
+          p {
+            color: #a7a7a7;
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 24px;
+          }
+          .code-block {
+            background: #000;
+            border-radius: 8px;
+            padding: 16px;
+            font-family: "Courier New", Courier, monospace;
+            font-size: 12px;
+            color: #00FF66;
+            overflow-x: auto;
+            margin-bottom: 24px;
+            border: 1px solid rgba(255,255,255,0.05);
+          }
+          .btn-close {
+            display: block;
+            width: 100%;
+            background: #FF6600;
+            border: none;
+            border-radius: 10px;
+            padding: 14px;
+            color: #fff;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.2s;
+            text-align: center;
+            text-decoration: none;
+          }
+          .btn-close:hover {
+            background: #e05500;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="card">
+          <div class="logo">⚙️</div>
+          <h2>Configuration de Google OAuth</h2>
+          <p>
+            Pour activer la connexion avec de vrais comptes Google, vous devez configurer les clés API de Google.
+            Créez un projet sur la <strong>Console Google Cloud</strong> et ajoutez les variables suivantes à votre fichier <code>.env</code> :
+          </p>
+          <div class="code-block">
+GOOGLE_CLIENT_ID=votre_client_id_google<br>
+GOOGLE_CLIENT_SECRET=votre_client_secret_google
+          </div>
+          <p style="font-size: 12px; color: #777;">
+            <strong>URI de redirection autorisé :</strong><br>
+            <code>${redirectUri}</code>
+          </p>
+          <button class="btn-close" onclick="window.close()">Fermer cette fenêtre</button>
+        </div>
+      </body>
+      </html>
+    `);
+  }
+
+  const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` + 
+    `client_id=${encodeURIComponent(GOOGLE_CLIENT_ID)}` +
+    `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+    `&response_type=code` +
+    `&scope=${encodeURIComponent('https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email')}` +
+    `&prompt=select_account`;
+  
+  res.redirect(authUrl);
+});
+
+app.get('/api/auth/google/callback', async (req, res) => {
+  const { code, error } = req.query;
+  if (error) {
+    console.error("Google Auth error:", error);
+    return res.status(400).send(`Erreur Google Auth: ${error}`);
+  }
+  if (!code) {
+    return res.status(400).send("Code d'autorisation manquant.");
+  }
+
+  const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+  const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
+  const redirectUri = `${req.protocol}://${req.get('host')}/api/auth/google/callback`;
+
+  try {
+    const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        code,
+        client_id: GOOGLE_CLIENT_ID,
+        client_secret: GOOGLE_CLIENT_SECRET,
+        redirect_uri: redirectUri,
+        grant_type: 'authorization_code',
+      }),
+    });
+
+    if (!tokenResponse.ok) {
+      const errText = await tokenResponse.text();
+      console.error("Error exchanging code:", errText);
+      return res.status(500).send(`Erreur lors de l'échange du jeton Google: ${errText}`);
+    }
+
+    const tokenData = await tokenResponse.json();
+    const accessToken = tokenData.access_token;
+
+    const userinfoResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+
+    if (!userinfoResponse.ok) {
+      const errText = await userinfoResponse.text();
+      console.error("Error fetching user info:", errText);
+      return res.status(500).send(`Erreur lors de la récupération du profil Google: ${errText}`);
+    }
+
+    const googleUser = await userinfoResponse.json();
+    const { email, name: displayName } = googleUser;
+
+    if (!email) {
+      return res.status(400).send("L'e-mail est requis pour se connecter via Google.");
+    }
+
+    const usernameBase = email.split('@')[0].replace(/[^a-zA-Z0-9]/g, '').toLowerCase() || 'googleuser';
+    let userRow = await dbGet('SELECT * FROM users WHERE email = $1', [email.toLowerCase().trim()]);
+
+    if (!userRow) {
+      let finalUsername = usernameBase;
+      let existingUser = await dbGet('SELECT * FROM users WHERE username = $1', [finalUsername]);
+      if (existingUser) {
+        finalUsername = `${usernameBase}_${Math.floor(100 + Math.random() * 900)}`;
+      }
+
+      const randomPassword = crypto.randomBytes(16).toString('hex');
+      const hashed = await bcrypt.hash(randomPassword, 10);
+      await dbRun(
+        `INSERT INTO users (username, "displayName", password, role, "premiumStatus", bio, "profileColor", "avatarSeed", email) VALUES ($1,$2,$3,$4,'none',$5,$6,$7,$8)`,
+        [finalUsername, displayName || finalUsername, hashed, 'listener', 'Compte connecté via Google.', '#FF6600', finalUsername, email.toLowerCase().trim()]
+      );
+      await sendWelcomeMessage(finalUsername, displayName || finalUsername);
+      userRow = await dbGet('SELECT * FROM users WHERE username = $1', [finalUsername]);
+    }
+
+    const safeUser = await buildUserObject(userRow.username);
+    const token = jwt.sign(
+      { username: userRow.username, role: userRow.role, premiumStatus: userRow.premiumStatus },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+    const oauthData = { ...safeUser, token };
+
+    res.send(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <title>Connexion réussie</title>
+      </head>
+      <body style="background: #0d0d0d; color: #fff; font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0;">
+        <div style="text-align: center;">
+          <h2 style="color: #FF6600;">Connexion réussie !</h2>
+          <p style="color: #a7a7a7;">Redirection en cours...</p>
+        </div>
+        <script>
+          const oauthData = ${JSON.stringify(oauthData)};
+          if (window.opener) {
+            window.opener.postMessage({ type: 'oauth-success', data: oauthData }, '*');
+            window.close();
+          } else {
+            document.body.innerHTML = '<h2 style="color: #FF4444;">Erreur : fen&ecirc;tre parente introuvable</h2>';
+          }
+        </script>
+      </body>
+      </html>
+    `);
+
+  } catch (err) {
+    console.error("Callback catch err:", err);
+    res.status(500).send(`Erreur serveur interne lors de l'authentification Google : ${err.message}`);
+  }
 });
 
 // ─── SIMULATED OAUTH ─────────────────────────────────────────
@@ -821,4 +1080,4 @@ if (fs.existsSync(distPath)) {
 }
 
 // ─── START ───────────────────────────────────────────────────
-app.listen(PORT, () => console.log(`Pandofy server running on http://localhost:${PORT}`));
+app.listen(PORT, '127.0.0.1', () => console.log(`Pandofy server running on http://127.0.0.1:${PORT}`));
