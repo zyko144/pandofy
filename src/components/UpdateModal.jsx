@@ -56,11 +56,11 @@ export default function WhatsNewModal() {
         style={{ 
           maxWidth: 480, 
           width: '90%', 
-          background: '#141414', 
+          background: 'radial-gradient(circle at top, rgba(255, 102, 0, 0.08) 0%, #111111 80%)', 
           border: '1.5px solid #FF6600', 
           borderRadius: 20, 
           padding: '36px 30px 30px', 
-          boxShadow: '0 20px 50px rgba(0, 0, 0, 0.9), 0 0 30px rgba(255, 102, 0, 0.2)',
+          boxShadow: '0 20px 50px rgba(0, 0, 0, 0.95), 0 0 30px rgba(255, 102, 0, 0.25)',
           position: 'relative'
         }}
       >
@@ -158,7 +158,7 @@ export default function WhatsNewModal() {
                 style={{ 
                   height: '100%', 
                   width: `${progress.percent || 0}%`, 
-                  background: 'linear-gradient(to right, #FF6600, #CC44FF)', 
+                  background: 'linear-gradient(to right, #FF6600, #FF3300)', 
                   borderRadius: 3, 
                   transition: 'width 0.2s ease' 
                 }} 
@@ -179,7 +179,7 @@ export default function WhatsNewModal() {
                   padding: '13px 20px', 
                   borderRadius: 9999, 
                   border: 'none', 
-                  background: 'linear-gradient(135deg, #FF6600, #CC44FF)', 
+                  background: 'linear-gradient(135deg, #FF6600, #FF3300)', 
                   color: '#fff', 
                   fontWeight: 700, 
                   fontSize: '0.95rem', 
@@ -189,8 +189,8 @@ export default function WhatsNewModal() {
                   justifyContent: 'center', 
                   gap: 8, 
                   opacity: installing ? 0.75 : 1,
-                  boxShadow: '0 4px 15px rgba(255,102,0,0.3)',
-                  transition: 'transform 0.15s'
+                  boxShadow: '0 4px 15px rgba(255,102,0,0.35)',
+                  transition: 'all 0.15s ease'
                 }}
                 onMouseEnter={(e) => { if (!installing) e.currentTarget.style.transform = 'translateY(-1px)'; }}
                 onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
@@ -229,13 +229,13 @@ export default function WhatsNewModal() {
                   padding: '13px 20px', 
                   borderRadius: 9999, 
                   border: 'none', 
-                  background: 'linear-gradient(135deg, #FF6600, #CC44FF)', 
+                  background: 'linear-gradient(135deg, #FF6600, #FF3300)', 
                   color: '#fff', 
                   fontWeight: 700, 
                   fontSize: '0.95rem', 
                   cursor: 'pointer',
-                  boxShadow: '0 4px 15px rgba(255,102,0,0.3)',
-                  transition: 'transform 0.15s'
+                  boxShadow: '0 4px 15px rgba(255,102,0,0.35)',
+                  transition: 'all 0.15s ease'
                 }}
                 onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
                 onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}

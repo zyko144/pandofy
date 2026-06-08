@@ -496,8 +496,10 @@ app.get('/api/admin/clear-tracks', async (req, res) => {
 // ─── VERSION ─────────────────────────────────────────────────
 app.get('/api/version', (req, res) => {
   res.json({
-    version: '2.2.12',
+    version: '2.2.13',
     changelog: [
+      '✨ Écran d\'accueil sublimé : Design orange pur, verre acrylique avec halo radial et bouton de démarrage cinématique',
+      '🎨 Thème Orange Pur : Suppression des dégradés violet résiduels pour une identité visuelle unifiée',
       '⚙️ Usurpation de User-Agent standard Chrome : Débloque définitivement YouTube et Google OAuth',
       '🔒 Initialisation de lecture YouTube sécurisée par état d\'attente onReady',
       '📢 Logs détaillés d\'activité de lecture YouTube intégrés pour la maintenance',

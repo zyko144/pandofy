@@ -311,7 +311,7 @@ export default function Player({ onToggleQueue, showQueue }) {
           key={ytId}
           ref={ytIframeRef}
           src={`https://www.youtube.com/embed/${ytId}?enablejsapi=1&autoplay=1&controls=0&playsinline=1&mute=0`}
-          style={{ position: 'fixed', top: '0px', left: '-1000px', width: '200px', height: '200px', overflow: 'hidden', pointerEvents: 'none', zIndex: -9999, border: 'none' }}
+          style={{ position: 'fixed', top: '0px', left: '-1000px', width: '300px', height: '200px', overflow: 'hidden', pointerEvents: 'none', zIndex: -9999, border: 'none' }}
           allow="autoplay; encrypted-media; picture-in-picture"
           allowFullScreen
           title="yt-audio"
@@ -390,7 +390,7 @@ export default function Player({ onToggleQueue, showQueue }) {
           <div className="player-time">{fmt(localTime)}</div>
           <div className="player-progress-bar" onMouseDown={handleProgressMouseDown}
             style={{ flex: 1, height: 4, background: 'rgba(255,255,255,0.12)', borderRadius: 2, cursor: 'pointer', position: 'relative', margin: '0 8px' }}>
-            <div style={{ height: '100%', width: `${progress}%`, background: 'linear-gradient(to right, var(--color-primary), #CC44FF)', borderRadius: 2, position: 'relative', transition: 'width 0.1s linear' }}>
+            <div style={{ height: '100%', width: `${progress}%`, background: 'linear-gradient(to right, var(--color-primary), var(--color-primary-hover))', borderRadius: 2, position: 'relative', transition: 'width 0.1s linear' }}>
               <div style={{ position: 'absolute', right: -5, top: '50%', transform: 'translateY(-50%)', width: 10, height: 10, borderRadius: '50%', background: '#fff', boxShadow: '0 0 4px var(--color-primary)' }} />
             </div>
           </div>
