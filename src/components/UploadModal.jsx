@@ -173,7 +173,7 @@ export default function UploadModal() {
 
         {/* Mode tabs */}
         <div style={{ display: 'flex', gap: 8, marginBottom: 20, background: 'rgba(255,255,255,0.05)', borderRadius: 10, padding: 4 }}>
-          {[['file', '🎵 Fichier MP3'], ['youtube', '▶️ YouTube']].map(([m, label]) => (
+          {[['file', '🎵 Fichier Audio (MP3, WAV...)'], ['youtube', '▶️ YouTube']].map(([m, label]) => (
             <button key={m} type="button" onClick={() => { setMode(m); setLocalTracks([EMPTY_TRACK()]); }}
               style={{ flex: 1, padding: '8px 12px', borderRadius: 8, border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem',
                 background: mode === m ? 'var(--color-primary)' : 'transparent', color: mode === m ? '#000' : 'var(--color-text-muted)' }}>
@@ -235,7 +235,7 @@ export default function UploadModal() {
                             </div>
                           ) : (
                             <div style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>
-                              <Upload size={18} style={{ marginBottom: 4 }} /><br/>Glisser-déposer ou cliquer pour ajouter des MP3
+                              <Upload size={18} style={{ marginBottom: 4 }} /><br/>Glisser-déposer ou cliquer pour ajouter des fichiers audio (MP3, WAV, FLAC...)
                             </div>
                           )}
                         </div>

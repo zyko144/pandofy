@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect, useRef } from 'react';
+import React, { createContext, useState, useEffect, useRef, useCallback } from 'react';
 import { 
   seedDatabaseIfEmpty, 
   getTracks, 
@@ -272,6 +272,23 @@ export const AppProvider = ({ children }) => {
           const cachedUser = await getUser(storedUser);
           if (cachedUser) setUser(cachedUser);
         }
+
+        // Resume playback on launch
+        const lastTrackId = localStorage.getItem('pandofy_last_track_id');
+        if (lastTrackId) {
+          const lastTrack = normalizedTracks.find(t => String(t.id) === String(lastTrackId));
+          if (lastTrack) {
+            setCurrentTrack(lastTrack);
+            const idx = normalizedTracks.findIndex(t => String(t.id) === String(lastTrackId));
+            if (idx !== -1) {
+              setQueue(normalizedTracks);
+              setQueueIndex(idx);
+            } else {
+              setQueue([lastTrack]);
+              setQueueIndex(0);
+            }
+          }
+        }
       } catch (e) {
         console.warn('Cache load error:', e);
       }
@@ -327,11 +344,60 @@ export const AppProvider = ({ children }) => {
 
   const playTrackedRef = useRef(false);
   const lastSecondRef = useRef(-1);
+  const preloadedRef = useRef(false);
 
   useEffect(() => {
     playTrackedRef.current = false;
     lastSecondRef.current = -1;
+    preloadedRef.current = false;
   }, [currentTrack]);
+
+  const preloadNextTrack = useCallback(() => {
+    if (queue.length === 0) return;
+    let nextTrk = null;
+
+    if (repeatMode === 'one') {
+      nextTrk = currentTrack;
+    } else if (isShuffle) {
+      if (shuffledIndices && shuffledIndices.length > 0) {
+        const nextPos = (shufflePos + 1) % shuffledIndices.length;
+        if (!(nextPos === 0 && repeatMode === 'off')) {
+          const nextIdx = shuffledIndices[nextPos];
+          nextTrk = queue[nextIdx];
+        }
+      }
+    } else {
+      let nextIdx = queueIndex + 1;
+      if (nextIdx >= queue.length) {
+        if (repeatMode === 'all') {
+          nextIdx = 0;
+          nextTrk = queue[nextIdx];
+        }
+      } else {
+        nextTrk = queue[nextIdx];
+      }
+    }
+
+    if (nextTrk) {
+      const isYT = nextTrk.audioUrl?.startsWith('yt:');
+      if (!isYT) {
+        const fullUrl = nextTrk.audioUrl.startsWith('/')
+          ? API_URL + nextTrk.audioUrl
+          : nextTrk.audioUrl;
+        
+        if (audioBRef.current) {
+          if (fullUrl.startsWith(API_URL)) {
+            audioBRef.current.crossOrigin = 'anonymous';
+          } else {
+            audioBRef.current.removeAttribute('crossorigin');
+          }
+          audioBRef.current.src = fullUrl;
+          audioBRef.current.load();
+          console.log("Preloading next track via audioBRef:", nextTrk.title);
+        }
+      }
+    }
+  }, [queue, queueIndex, repeatMode, isShuffle, shuffledIndices, shufflePos, currentTrack]);
 
   // Audio handlers
   useEffect(() => {
@@ -353,6 +419,14 @@ export const AppProvider = ({ children }) => {
         lastSecondRef.current = sec;
         setCurrentTime(audio.currentTime);
       }
+
+      // 3. Preload next track when more than 80% complete
+      if (audio.duration && (audio.currentTime / audio.duration) > 0.8) {
+        if (!preloadedRef.current) {
+          preloadedRef.current = true;
+          preloadNextTrack();
+        }
+      }
     };
     const onDurationChange = () => setDuration(audio.duration || 0);
     const onEnded = () => handleTrackEnd();
@@ -366,7 +440,7 @@ export const AppProvider = ({ children }) => {
       audio.removeEventListener('durationchange', onDurationChange);
       audio.removeEventListener('ended', onEnded);
     };
-  }, [queue, queueIndex, repeatMode, isShuffle, shuffledIndices, shufflePos, currentTrack, user]);
+  }, [queue, queueIndex, repeatMode, isShuffle, shuffledIndices, shufflePos, currentTrack, user, preloadNextTrack]);
 
   useEffect(() => {
     audioRef.current.volume = muted ? 0 : volume;
@@ -374,6 +448,8 @@ export const AppProvider = ({ children }) => {
 
   useEffect(() => {
     if (!currentTrack) return;
+
+    localStorage.setItem('pandofy_last_track_id', currentTrack.id);
 
     const audio = audioRef.current;
 

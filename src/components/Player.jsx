@@ -13,17 +13,19 @@ export default function Player({ onToggleQueue, showQueue }) {
     volume, setVolume, muted, setMuted, currentTime, setCurrentTime, duration, setDuration, seek,
     isShuffle, toggleShuffle, repeatMode, cycleRepeat, user, toggleLike,
     analyserNode, formatDuration, audioRef, sleepTimer, setSleepTimer, queue, queueIndex,
+    themeAccent,
   } = useContext(AppContext);
 
   const canvasRef = useRef(null);
   const playTracked = useRef(false);
   const ytIframeRef = useRef(null);
+  const timeDisplayRef = useRef(null);
+  const progressBarFillRef = useRef(null);
   const [sleepCountdown, setSleepCountdown] = useState('');
   const [showSleepMenu, setShowSleepMenu] = useState(false);
   const sleepIntervalRef = useRef(null);
   const [checkingUpdate, setCheckingUpdate] = useState(false);
   const bufRef = useRef(null);
-  const [localTime, setLocalTime] = useState(0);
   const [ytPlayerReady, setYtPlayerReady] = useState(false);
 
   const isYouTube = currentTrack?.audioUrl?.startsWith('yt:');
@@ -40,7 +42,6 @@ export default function Player({ onToggleQueue, showQueue }) {
   // Track YouTube ID changes
   useEffect(() => {
     console.log("[YT PLAYER] Track changed. ID:", ytId);
-    setLocalTime(0);
     setYtPlayerReady(false);
   }, [ytId]);
 
@@ -106,7 +107,7 @@ export default function Player({ onToggleQueue, showQueue }) {
         if (data?.event === 'infoDelivery' && data?.info) {
           const info = data.info;
           if (info.currentTime !== undefined) {
-            setLocalTime(info.currentTime);
+            updatePlaybackProgress(info.currentTime, info.duration || duration);
           }
           if (info.duration !== undefined && info.duration > 0) {
             setDuration(info.duration);
@@ -172,7 +173,7 @@ export default function Player({ onToggleQueue, showQueue }) {
       }
 
       // Read active primary theme color dynamically
-      const themeColor = getComputedStyle(document.documentElement).getPropertyValue('--color-primary').trim() || '#FF6600';
+      const themeColor = themeAccent || '#FF6600';
       ctx.fillStyle = themeColor;
 
       for (let i = 0; i < count; i++) {
@@ -185,20 +186,20 @@ export default function Player({ onToggleQueue, showQueue }) {
     };
     draw();
     return () => cancelAnimationFrame(animId);
-  }, [isPlaying, volume, muted, analyserNode, isYouTube]);
+  }, [isPlaying, volume, muted, analyserNode, isYouTube, themeAccent]);
 
-  // Sync HTML5 audio currentTime to local state
+  // Sync HTML5 audio currentTime to DOM refs
   useEffect(() => {
     const audio = audioRef?.current;
     if (!audio) return;
     const updateTime = () => {
       if (!isYouTube) {
-        setLocalTime(audio.currentTime);
+        updatePlaybackProgress(audio.currentTime, duration);
       }
     };
     audio.addEventListener('timeupdate', updateTime);
     return () => audio.removeEventListener('timeupdate', updateTime);
-  }, [isYouTube, audioRef]);
+  }, [isYouTube, audioRef, duration]);
 
   // Media Session
   useEffect(() => {
@@ -256,6 +257,28 @@ export default function Player({ onToggleQueue, showQueue }) {
     return `${Math.floor(s / 60)}:${Math.floor(s % 60).toString().padStart(2, '0')}`;
   };
 
+  const updatePlaybackProgress = (time, trackDuration) => {
+    const t = time || 0;
+    const dur = trackDuration || duration || 0;
+    if (timeDisplayRef.current) {
+      timeDisplayRef.current.innerText = fmt(t);
+    }
+    if (progressBarFillRef.current) {
+      const pct = dur > 0 ? (t / dur) * 100 : 0;
+      progressBarFillRef.current.style.width = `${pct}%`;
+    }
+  };
+
+  // Reset progress bar fill style width and time text innerText to 0 on track change
+  useEffect(() => {
+    if (timeDisplayRef.current) {
+      timeDisplayRef.current.innerText = '0:00';
+    }
+    if (progressBarFillRef.current) {
+      progressBarFillRef.current.style.width = '0%';
+    }
+  }, [currentTrack]);
+
   const handleSeek = (time) => {
     if (isYouTube && ytIframeRef.current) {
       try {
@@ -263,13 +286,13 @@ export default function Player({ onToggleQueue, showQueue }) {
         ytIframeRef.current.contentWindow?.postMessage(
           JSON.stringify({ event: 'command', func: 'seekTo', args: [time, true] }), '*'
         );
-        setLocalTime(time);
+        updatePlaybackProgress(time, duration);
       } catch (err) {
         console.error("[YT PLAYER] Seek error:", err);
       }
     } else {
       seek(time);
-      setLocalTime(time);
+      updatePlaybackProgress(time, duration);
     }
   };
 
@@ -307,7 +330,6 @@ export default function Player({ onToggleQueue, showQueue }) {
 
   const isLiked = currentTrack && user && user.likedTracks?.map(String).includes(String(currentTrack.id));
   const upcomingCount = queue.length > 0 ? Math.max(0, queue.length - queueIndex - 1) : 0;
-  const progress = duration > 0 ? (localTime / duration) * 100 : 0;
 
   return (
     <footer className="player">
@@ -321,9 +343,6 @@ export default function Player({ onToggleQueue, showQueue }) {
           allow="autoplay; encrypted-media; picture-in-picture"
           allowFullScreen
           title="yt-audio"
-          onLoad={() => {
-            console.log("[YT PLAYER] iframe HTML loaded.");
-          }}
         />
       )}
 
@@ -371,10 +390,10 @@ export default function Player({ onToggleQueue, showQueue }) {
 
         {/* Progress bar */}
         <div className="player-progress-wrapper">
-          <div className="player-time">{fmt(localTime)}</div>
+          <div ref={timeDisplayRef} className="player-time" />
           <div className="player-progress-bar" onMouseDown={handleProgressMouseDown}
             style={{ flex: 1, height: 4, background: 'rgba(255,255,255,0.12)', borderRadius: 2, cursor: 'pointer', position: 'relative', margin: '0 8px' }}>
-            <div style={{ height: '100%', width: `${progress}%`, background: 'linear-gradient(to right, var(--color-primary), var(--color-primary-hover))', borderRadius: 2, position: 'relative', transition: 'width 0.1s linear' }}>
+            <div ref={progressBarFillRef} style={{ height: '100%', background: 'linear-gradient(to right, var(--color-primary), var(--color-primary-hover))', borderRadius: 2, position: 'relative', transition: 'width 0.1s linear' }}>
               <div style={{ position: 'absolute', right: -5, top: '50%', transform: 'translateY(-50%)', width: 10, height: 10, borderRadius: '50%', background: '#fff', boxShadow: '0 0 4px var(--color-primary)' }} />
             </div>
           </div>

@@ -130,7 +130,11 @@ if (!gotTheLock) {
     const serverPath = path.join(__dirname, 'server.js');
     console.log(`[PANDOFY] Spawning local server process: ${serverPath}`);
     const serverProcess = fork(serverPath, [], {
-      env: { ...process.env, PORT: PORT.toString() },
+      env: { 
+        ...process.env, 
+        PORT: PORT.toString(),
+        USER_DATA_PATH: app.getPath('userData')
+      },
       stdio: 'inherit'
     });
 

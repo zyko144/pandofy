@@ -19,7 +19,7 @@ import {
 
 export async function isServerOnline() {
   try {
-    const res = await fetch(`${API_URL}/api/tracks`, { method: 'GET', signal: AbortSignal.timeout(1500) });
+    const res = await fetch(`${API_URL}/api/version`, { method: 'GET', signal: AbortSignal.timeout(1500) });
     return res.ok;
   } catch (e) {
     return false;

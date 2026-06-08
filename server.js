@@ -59,7 +59,8 @@ const JWT_SECRET = process.env.JWT_SECRET || (() => {
 })();
 
 // ─── STORAGE ─────────────────────────────────────────────────
-const UPLOADS_DIR = process.env.UPLOADS_DIR || path.join(__dirname, 'uploads');
+const USER_DATA_PATH = process.env.USER_DATA_PATH || __dirname;
+const UPLOADS_DIR = process.env.UPLOADS_DIR || path.join(USER_DATA_PATH, 'uploads');
 const USE_CLOUDINARY = !!process.env.CLOUDINARY_URL;
 if (!USE_CLOUDINARY && !fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 
@@ -150,7 +151,9 @@ if (process.env.DATABASE_URL) {
 } else {
   console.log('[DATABASE] Mode SQLite (local) activé');
   const Database = (await import('better-sqlite3')).default;
-  const SQLITE_FILE = path.join(__dirname, 'server', 'pandofy.db');
+  const SERVER_DIR = path.join(USER_DATA_PATH, 'server');
+  if (!fs.existsSync(SERVER_DIR)) fs.mkdirSync(SERVER_DIR, { recursive: true });
+  const SQLITE_FILE = path.join(USER_DATA_PATH, 'server', 'pandofy.db');
   const sqliteDb = new Database(SQLITE_FILE);
   
   const translateSql = (sql) => {
@@ -496,10 +499,12 @@ app.get('/api/admin/clear-tracks', async (req, res) => {
 // ─── VERSION ─────────────────────────────────────────────────
 app.get('/api/version', (req, res) => {
   res.json({
-    version: '2.2.13',
+    version: '2.2.14',
     changelog: [
+      '⚡ Optimisations majeures de performance : Élimination complète des re-renders inutiles (gain CPU/RAM massif)',
+      '📦 Installation et lancement ultra-rapides : Activation de la compression ASAR pour un démarrage instantané',
+      '🎵 Support WAV : Possibilité de téléverser et de lire des fichiers audio au format non compressé WAV',
       '✨ Écran d\'accueil sublimé : Design orange pur, verre acrylique avec halo radial et bouton de démarrage cinématique',
-      '🎨 Thème Orange Pur : Suppression des dégradés violet résiduels pour une identité visuelle unifiée',
       '⚙️ Usurpation de User-Agent standard Chrome : Débloque définitivement YouTube et Google OAuth',
       '🔒 Initialisation de lecture YouTube sécurisée par état d\'attente onReady',
       '📢 Logs détaillés d\'activité de lecture YouTube intégrés pour la maintenance',
