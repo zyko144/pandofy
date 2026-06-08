@@ -46,7 +46,7 @@ export default function Player({ onToggleQueue, showQueue }) {
 
   // Control YouTube play/pause
   useEffect(() => {
-    if (!isYouTube || !ytPlayerReady || !ytIframeRef.current) return;
+    if (!isYouTube || !ytIframeRef.current) return;
     try {
       console.log(`[YT PLAYER] Syncing play state: isPlaying = ${isPlaying}`);
       const msg = isPlaying
@@ -56,11 +56,11 @@ export default function Player({ onToggleQueue, showQueue }) {
     } catch (err) {
       console.error("[YT PLAYER] Error syncing play state:", err);
     }
-  }, [isPlaying, isYouTube, ytPlayerReady]);
+  }, [isPlaying, isYouTube]);
 
   // Sync YouTube volume/mute
   useEffect(() => {
-    if (!isYouTube || !ytPlayerReady || !ytIframeRef.current) return;
+    if (!isYouTube || !ytIframeRef.current) return;
     try {
       const vol = muted ? 0 : Math.round(volume * 100);
       console.log(`[YT PLAYER] Syncing volume: vol = ${vol}, muted = ${muted}`);
@@ -79,7 +79,7 @@ export default function Player({ onToggleQueue, showQueue }) {
     } catch (err) {
       console.error("[YT PLAYER] Error syncing volume state:", err);
     }
-  }, [volume, muted, isYouTube, ytPlayerReady]);
+  }, [volume, muted, isYouTube]);
 
   // Listen for YouTube API events (ready, timeupdate, duration, ended)
   useEffect(() => {
@@ -310,11 +310,36 @@ export default function Player({ onToggleQueue, showQueue }) {
         <iframe
           key={ytId}
           ref={ytIframeRef}
-          src={`https://www.youtube-nocookie.com/embed/${ytId}?enablejsapi=1&autoplay=1&controls=0&playsinline=1&mute=0&origin=${encodeURIComponent(window.location.origin)}`}
+          src={`https://www.youtube.com/embed/${ytId}?enablejsapi=1&autoplay=1&controls=0&playsinline=1&mute=0`}
           style={{ position: 'fixed', top: '0px', left: '-1000px', width: '200px', height: '200px', overflow: 'hidden', pointerEvents: 'none', zIndex: -9999, border: 'none' }}
           allow="autoplay; encrypted-media; picture-in-picture"
           allowFullScreen
           title="yt-audio"
+          onLoad={() => {
+            console.log("[YT PLAYER] iframe loaded! Sending initial volume and play states.");
+            setTimeout(() => {
+              try {
+                if (!ytIframeRef.current) return;
+                const win = ytIframeRef.current.contentWindow;
+                const vol = muted ? 0 : Math.round(volume * 100);
+                
+                console.log(`[YT PLAYER] Initializing iframe volume: ${vol}, muted: ${muted}`);
+                win?.postMessage(JSON.stringify({ event: 'command', func: 'setVolume', args: [vol] }), '*');
+                if (muted) {
+                  win?.postMessage(JSON.stringify({ event: 'command', func: 'mute', args: [] }), '*');
+                } else {
+                  win?.postMessage(JSON.stringify({ event: 'command', func: 'unMute', args: [] }), '*');
+                }
+
+                if (isPlaying) {
+                  console.log("[YT PLAYER] Initializing iframe play state: PLAYING");
+                  win?.postMessage(JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*');
+                }
+              } catch (err) {
+                console.error("[YT PLAYER] Error in initial iframe configuration:", err);
+              }
+            }, 600);
+          }}
         />
       )}
 
