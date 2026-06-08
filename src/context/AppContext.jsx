@@ -283,6 +283,26 @@ export const AppProvider = ({ children }) => {
         setIsServerActive(true);
         await refreshData();
         await checkAppVersion();
+
+        // Validate JWT token with server and restore fresh session
+        const token = localStorage.getItem('pandofy_token');
+        const storedUser = localStorage.getItem('pandofy_session_user');
+        if (token && storedUser) {
+          try {
+            const res = await authFetch(`${API_URL}/api/users/${storedUser}`);
+            if (res.ok) {
+              const freshUser = await res.json();
+              if (freshUser && freshUser.username) {
+                setUser(freshUser);
+                await saveUser(freshUser);
+              }
+            } else if (res.status === 401 || res.status === 403) {
+              localStorage.removeItem('pandofy_token');
+              localStorage.removeItem('pandofy_session_user');
+              setUser(null);
+            }
+          } catch {}
+        }
       }
     }
     initApp();
