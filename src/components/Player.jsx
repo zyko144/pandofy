@@ -24,12 +24,9 @@ export default function Player({ onToggleQueue, showQueue }) {
   const [checkingUpdate, setCheckingUpdate] = useState(false);
   const bufRef = useRef(null);
   const [localTime, setLocalTime] = useState(0);
+  const [ytPlayerReady, setYtPlayerReady] = useState(false);
 
   const isYouTube = currentTrack?.audioUrl?.startsWith('yt:');
-
-  useEffect(() => {
-    setLocalTime(0);
-  }, [currentTrack]);
 
   const getYtId = (url) => {
     if (!url) return null;
@@ -40,22 +37,33 @@ export default function Player({ onToggleQueue, showQueue }) {
   };
   const ytId = isYouTube ? getYtId(currentTrack?.audioUrl) : null;
 
+  // Track YouTube ID changes
+  useEffect(() => {
+    console.log("[YT PLAYER] Track changed. ID:", ytId);
+    setLocalTime(0);
+    setYtPlayerReady(false);
+  }, [ytId]);
+
   // Control YouTube play/pause
   useEffect(() => {
-    if (!isYouTube || !ytIframeRef.current) return;
+    if (!isYouTube || !ytPlayerReady || !ytIframeRef.current) return;
     try {
+      console.log(`[YT PLAYER] Syncing play state: isPlaying = ${isPlaying}`);
       const msg = isPlaying
         ? JSON.stringify({ event: 'command', func: 'playVideo', args: [] })
         : JSON.stringify({ event: 'command', func: 'pauseVideo', args: [] });
       ytIframeRef.current.contentWindow?.postMessage(msg, '*');
-    } catch {}
-  }, [isPlaying, isYouTube]);
+    } catch (err) {
+      console.error("[YT PLAYER] Error syncing play state:", err);
+    }
+  }, [isPlaying, isYouTube, ytPlayerReady]);
 
   // Sync YouTube volume/mute
   useEffect(() => {
-    if (!isYouTube || !ytIframeRef.current) return;
+    if (!isYouTube || !ytPlayerReady || !ytIframeRef.current) return;
     try {
       const vol = muted ? 0 : Math.round(volume * 100);
+      console.log(`[YT PLAYER] Syncing volume: vol = ${vol}, muted = ${muted}`);
       ytIframeRef.current.contentWindow?.postMessage(
         JSON.stringify({ event: 'command', func: 'setVolume', args: [vol] }), '*'
       );
@@ -68,15 +76,27 @@ export default function Player({ onToggleQueue, showQueue }) {
           JSON.stringify({ event: 'command', func: 'unMute', args: [] }), '*'
         );
       }
-    } catch {}
-  }, [volume, muted, isYouTube]);
+    } catch (err) {
+      console.error("[YT PLAYER] Error syncing volume state:", err);
+    }
+  }, [volume, muted, isYouTube, ytPlayerReady]);
 
-  // Listen for YouTube API events (timeupdate, duration, ended)
+  // Listen for YouTube API events (ready, timeupdate, duration, ended)
   useEffect(() => {
-    if (!isYouTube) return;
+    if (!isYouTube) {
+      setYtPlayerReady(false);
+      return;
+    }
+    console.log("[YT PLAYER] Attaching postMessage listener for YouTube events");
     const handler = (e) => {
       try {
         const data = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
+        
+        if (data?.event === 'onReady') {
+          console.log("[YT PLAYER] Received 'onReady' from iframe, setting player ready!");
+          setYtPlayerReady(true);
+        }
+
         if (data?.event === 'infoDelivery' && data?.info) {
           const info = data.info;
           if (info.currentTime !== undefined) {
@@ -86,13 +106,19 @@ export default function Player({ onToggleQueue, showQueue }) {
             setDuration(info.duration);
           }
           if (info.playerState === 0) { // ENDED
+            console.log("[YT PLAYER] Track ended naturally");
             nextTrack();
           }
         }
-      } catch {}
+      } catch (err) {
+        // Quietly ignore parsing errors for non-JSON system messages
+      }
     };
     window.addEventListener('message', handler);
-    return () => window.removeEventListener('message', handler);
+    return () => {
+      console.log("[YT PLAYER] Detaching postMessage listener for YouTube events");
+      window.removeEventListener('message', handler);
+    };
   }, [isYouTube, nextTrack, setDuration]);
 
   // Canvas visualizer
@@ -227,12 +253,13 @@ export default function Player({ onToggleQueue, showQueue }) {
   const handleSeek = (time) => {
     if (isYouTube && ytIframeRef.current) {
       try {
+        console.log(`[YT PLAYER] Seeking YouTube to: ${time}s`);
         ytIframeRef.current.contentWindow?.postMessage(
           JSON.stringify({ event: 'command', func: 'seekTo', args: [time, true] }), '*'
         );
         setLocalTime(time);
       } catch (err) {
-        console.error("YouTube seek error:", err);
+        console.error("[YT PLAYER] Seek error:", err);
       }
     } else {
       seek(time);
@@ -288,21 +315,6 @@ export default function Player({ onToggleQueue, showQueue }) {
           allow="autoplay; encrypted-media; picture-in-picture"
           allowFullScreen
           title="yt-audio"
-          onLoad={() => {
-            setTimeout(() => {
-              try {
-                const vol = muted ? 0 : Math.round(volume * 100);
-                ytIframeRef.current?.contentWindow?.postMessage(
-                  JSON.stringify({ event: 'command', func: 'setVolume', args: [vol] }), '*'
-                );
-                if (isPlaying) {
-                  ytIframeRef.current?.contentWindow?.postMessage(
-                    JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*'
-                  );
-                }
-              } catch {}
-            }, 500);
-          }}
         />
       )}
 

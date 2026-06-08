@@ -496,8 +496,13 @@ app.get('/api/admin/clear-tracks', async (req, res) => {
 // ─── VERSION ─────────────────────────────────────────────────
 app.get('/api/version', (req, res) => {
   res.json({
-    version: '2.2.11',
+    version: '2.2.12',
     changelog: [
+      '⚙️ Usurpation de User-Agent standard Chrome : Débloque définitivement YouTube et Google OAuth',
+      '🔒 Initialisation de lecture YouTube sécurisée par état d\'attente onReady',
+      '📢 Logs détaillés d\'activité de lecture YouTube intégrés pour la maintenance',
+      '✨ Popup de nouveautés professionnel : Nouveau design ultra-propre avec bouton de fermeture X et scrollbar fluide',
+      '🧹 Nettoyage complet : Suppression du code mort (App.css, Player_refresh.jsx) et de wavesurfer.js',
       '🎵 Résolution définitive YouTube : iframe native robuste par communication postMessage sans blocages API',
       '⚡ Chronologie interactive : Glissement et clic fluides (Drag & Seek) sur la barre de défilement',
       '✨ Écran d\'accueil premium : Modal des nouveautés redessiné avec bordure orange lumineuse et logo stylisé',

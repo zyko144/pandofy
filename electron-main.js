@@ -116,6 +116,11 @@ if (!gotTheLock) {
       console.warn('Cache clear error:', err);
     }
     
+    // Set standard User Agent to bypass YouTube and Google OAuth blocks against Electron
+    const standardUserAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+    session.defaultSession.setUserAgent(standardUserAgent);
+    console.log(`[PANDOFY] User-Agent set to standard Chrome: ${standardUserAgent}`);
+
     // Dynamically find a free port starting from 3001
     PORT = await getFreePort(3001);
     process.env.PORT = PORT;
