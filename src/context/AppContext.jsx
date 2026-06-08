@@ -803,6 +803,28 @@ export const AppProvider = ({ children }) => {
     }
   };
 
+  const deletePlaylist = async (playlistId) => {
+    try {
+      const res = await authFetch(`${API_URL}/api/playlists/${playlistId}`, {
+        method: 'DELETE'
+      });
+      if (res.ok) {
+        triggerToast("🗑️ Playlist supprimée avec succès");
+        await refreshData();
+        if (activePlaylistId === playlistId) {
+          setActivePlaylistId(null);
+          setActiveTab('home');
+        }
+      } else {
+        const data = await res.json();
+        triggerToast(`❌ Erreur: ${data.error || 'Impossible de supprimer la playlist'}`);
+      }
+    } catch (e) {
+      console.error(e);
+      triggerToast("❌ Erreur lors de la suppression");
+    }
+  };
+
   // Like Song sync
   const toggleLike = async (trackId) => {
     if (!user) {
@@ -931,8 +953,9 @@ export const AppProvider = ({ children }) => {
     const height = 620;
     const left = window.screen.width / 2 - width / 2;
     const top = window.screen.height / 2 - height / 2;
-    const url = provider === 'google'
-      ? `${API_URL}/api/auth/google`
+    const realProviders = ['google', 'discord'];
+    const url = realProviders.includes(provider)
+      ? `${API_URL}/api/auth/${provider}`
       : `${API_URL}/api/auth/oauth-mock?provider=${provider}`;
     window.open(
       url,
@@ -1024,6 +1047,7 @@ export const AppProvider = ({ children }) => {
       // Playlists
       createNewPlaylist,
       addTrackToPlaylist,
+      deletePlaylist,
       // Upload
       uploadTrack,
       // Payments

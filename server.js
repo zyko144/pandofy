@@ -15,6 +15,42 @@ const { Pool } = pkg;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// ─── LOAD ENV FILE MANUALLY ──────────────────────────────────
+function loadEnv(envPath) {
+  try {
+    if (fs.existsSync(envPath)) {
+      const content = fs.readFileSync(envPath, 'utf-8');
+      content.split('\n').forEach(line => {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith('#')) return;
+        const index = trimmed.indexOf('=');
+        if (index === -1) return;
+        const key = trimmed.substring(0, index).trim();
+        let val = trimmed.substring(index + 1).trim();
+        if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+          val = val.substring(1, val.length - 1);
+        }
+        process.env[key] = val;
+      });
+      console.log(`[ENV] Loaded environment variables from: ${envPath}`);
+    }
+  } catch (err) {
+    console.warn('[ENV] Error loading env file:', err.message);
+  }
+}
+
+const possiblePaths = [
+  path.join(process.cwd(), '.env'),
+  path.join(__dirname, '.env'),
+  'C:/Users/noamb/.gemini/antigravity/scratch/pandofy/.env'
+];
+for (const p of possiblePaths) {
+  if (fs.existsSync(p)) {
+    loadEnv(p);
+    break;
+  }
+}
+
 // ─── JWT SECRET ──────────────────────────────────────────────
 const JWT_SECRET = process.env.JWT_SECRET || (() => {
   const g = crypto.randomBytes(64).toString('hex');
@@ -460,8 +496,10 @@ app.get('/api/admin/clear-tracks', async (req, res) => {
 // ─── VERSION ─────────────────────────────────────────────────
 app.get('/api/version', (req, res) => {
   res.json({
-    version: '2.2.7',
+    version: '2.2.9',
     changelog: [
+      '⚙️ Intégration d\'un chargeur d\'.env natif au démarrage du serveur backend pour lire les clés d\'API Google',
+      '🛠️ Fix du bouton de suppression de playlist (implémentation de la fonction deletePlaylist dans le contexte client)',
       '📦 Migration complète de l\'archive d\'exécution (désactivation ASAR pour stabiliser le chargeur Node ESM et SQLite native)',
       '🛡️ Fix du démarrage du serveur local en processus séparé (correctif bug ASAR de chargement ESM et blocages de ports)',
       '🌐 Remplacement des emojis de connexion sociale par les vrais logos de marque (Google, GitHub, Discord, Apple)',
@@ -841,10 +879,15 @@ app.get('/api/auth/google/callback', async (req, res) => {
       const hashed = await bcrypt.hash(randomPassword, 10);
       await dbRun(
         `INSERT INTO users (username, "displayName", password, role, "premiumStatus", bio, "profileColor", "avatarSeed", email) VALUES ($1,$2,$3,$4,'none',$5,$6,$7,$8)`,
-        [finalUsername, displayName || finalUsername, hashed, 'listener', 'Compte connecté via Google.', '#FF6600', finalUsername, email.toLowerCase().trim()]
+        [finalUsername, displayName || finalUsername, hashed, 'artist', 'Compte connecté via Google.', '#FF6600', finalUsername, email.toLowerCase().trim()]
       );
       await sendWelcomeMessage(finalUsername, displayName || finalUsername);
       userRow = await dbGet('SELECT * FROM users WHERE username = $1', [finalUsername]);
+    } else {
+      if (userRow.role === 'listener') {
+        await dbRun('UPDATE users SET role = $1 WHERE username = $2', ['artist', userRow.username]);
+        userRow.role = 'artist';
+      }
     }
 
     const safeUser = await buildUserObject(userRow.username);
@@ -883,6 +926,129 @@ app.get('/api/auth/google/callback', async (req, res) => {
   } catch (err) {
     console.error("Callback catch err:", err);
     res.status(500).send(`Erreur serveur interne lors de l'authentification Google : ${err.message}`);
+  }
+});
+
+// ─── DISCORD OAUTH ───────────────────────────────────────────
+app.get('/api/auth/discord', (req, res) => {
+  const DISCORD_CLIENT_ID = process.env.DISCORD_CLIENT_ID;
+  const DISCORD_CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET;
+  const redirectUri = `${req.protocol}://${req.get('host')}/api/auth/discord/callback`;
+
+  if (!DISCORD_CLIENT_ID || !DISCORD_CLIENT_SECRET) {
+    return res.send(`
+      <!DOCTYPE html><html><head><meta charset="utf-8"><title>Configuration Discord</title>
+      <style>body{font-family:sans-serif;background:#0d0d0d;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;}
+      .card{background:#181818;border-radius:16px;border:1px solid rgba(88,101,242,0.3);padding:40px;width:440px;text-align:center;}
+      h2{color:#5865F2;} p{color:#a7a7a7;font-size:14px;} code{background:#000;padding:2px 6px;border-radius:4px;color:#00FF66;font-size:12px;}
+      button{background:#5865F2;border:none;border-radius:10px;padding:14px 28px;color:#fff;font-weight:700;cursor:pointer;margin-top:16px;}</style>
+      </head><body><div class="card">
+      <div style="font-size:48px;margin-bottom:16px;">⚙️</div>
+      <h2>Configuration Discord OAuth</h2>
+      <p>Ajoutez ces variables sur Render :</p>
+      <p><code>DISCORD_CLIENT_ID</code> et <code>DISCORD_CLIENT_SECRET</code></p>
+      <p style="font-size:12px;color:#777;">Redirect URI : <code>${redirectUri}</code></p>
+      <button onclick="window.close()">Fermer</button>
+      </div></body></html>
+    `);
+  }
+
+  const authUrl = `https://discord.com/api/oauth2/authorize?` +
+    `client_id=${encodeURIComponent(DISCORD_CLIENT_ID)}` +
+    `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+    `&response_type=code` +
+    `&scope=${encodeURIComponent('identify email')}`;
+
+  res.redirect(authUrl);
+});
+
+app.get('/api/auth/discord/callback', async (req, res) => {
+  const { code, error } = req.query;
+  if (error || !code) return res.status(400).send(`Erreur Discord Auth: ${error || 'code manquant'}`);
+
+  const DISCORD_CLIENT_ID = process.env.DISCORD_CLIENT_ID;
+  const DISCORD_CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET;
+  const redirectUri = `${req.protocol}://${req.get('host')}/api/auth/discord/callback`;
+
+  try {
+    const tokenResponse = await fetch('https://discord.com/api/oauth2/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        client_id: DISCORD_CLIENT_ID,
+        client_secret: DISCORD_CLIENT_SECRET,
+        grant_type: 'authorization_code',
+        code,
+        redirect_uri: redirectUri
+      })
+    });
+
+    if (!tokenResponse.ok) {
+      const errText = await tokenResponse.text();
+      return res.status(500).send(`Erreur token Discord: ${errText}`);
+    }
+
+    const tokenData = await tokenResponse.json();
+    const accessToken = tokenData.access_token;
+
+    const userInfoResponse = await fetch('https://discord.com/api/users/@me', {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+
+    if (!userInfoResponse.ok) return res.status(500).send('Erreur récupération profil Discord');
+
+    const discordUser = await userInfoResponse.json();
+    const { id, username: discordUsername, global_name, email, avatar } = discordUser;
+
+    const displayName = global_name || discordUsername;
+    const usernameBase = discordUsername.replace(/[^a-zA-Z0-9]/g, '').toLowerCase() || `discord${id}`;
+    const avatarUrl = avatar ? `https://cdn.discordapp.com/avatars/${id}/${avatar}.png` : null;
+
+    let userRow = email ? await dbGet('SELECT * FROM users WHERE email = $1', [email.toLowerCase()]) : null;
+
+    if (!userRow) {
+      userRow = await dbGet('SELECT * FROM users WHERE username = $1', [usernameBase]);
+      if (!userRow) {
+        const randomPassword = crypto.randomBytes(16).toString('hex');
+        const hashed = await bcrypt.hash(randomPassword, 10);
+        await dbRun(
+          `INSERT INTO users (username, "displayName", password, role, "premiumStatus", bio, "profileColor", "avatarSeed", email) VALUES ($1,$2,$3,$4,'none',$5,$6,$7,$8)`,
+          [usernameBase, displayName, hashed, 'artist', 'Compte connecté via Discord.', '#5865F2', usernameBase, email?.toLowerCase() || null]
+        );
+        await sendWelcomeMessage(usernameBase, displayName);
+        userRow = await dbGet('SELECT * FROM users WHERE username = $1', [usernameBase]);
+      }
+    }
+
+    const safeUser = await buildUserObject(userRow.username);
+    const token = jwt.sign(
+      { username: userRow.username, role: userRow.role, premiumStatus: userRow.premiumStatus },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+    const oauthData = { ...safeUser, token };
+
+    res.send(`
+      <!DOCTYPE html><html><head><meta charset="utf-8"><title>Connexion Discord réussie</title></head>
+      <body style="background:#0d0d0d;color:#fff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;">
+      <div style="text-align:center;">
+        <h2 style="color:#5865F2;">Connexion Discord réussie !</h2>
+        <p style="color:#a7a7a7;">Redirection en cours...</p>
+      </div>
+      <script>
+        const oauthData = ${JSON.stringify(oauthData)};
+        if (window.opener) {
+          window.opener.postMessage({ type: 'oauth-success', data: oauthData }, '*');
+          window.close();
+        } else {
+          document.body.innerHTML = '<h2 style="color:#FF4444;">Erreur : fenêtre parente introuvable</h2>';
+        }
+      </script>
+      </body></html>
+    `);
+  } catch (err) {
+    console.error('Discord callback error:', err);
+    res.status(500).send(`Erreur serveur Discord: ${err.message}`);
   }
 });
 
