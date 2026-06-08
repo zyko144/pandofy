@@ -91,7 +91,7 @@ export default function Player({ onToggleQueue, showQueue }) {
                 } catch (err) {}
               },
               onStateChange: (event) => {
-                if (event.data === 0) {
+                if (event.data === 0) { // ENDED
                   nextTrack();
                 } else if (event.data === 1) { // PLAYING
                   try {
@@ -100,6 +100,10 @@ export default function Player({ onToggleQueue, showQueue }) {
                       event.target.setVolume(muted ? 0 : Math.round(volume * 100));
                     }
                   } catch (err) {}
+                } else if (event.data === 3) { // BUFFERING — force play
+                  try {
+                    if (typeof event.target.playVideo === 'function') event.target.playVideo();
+                  } catch {}
                 }
               }
             }
@@ -133,7 +137,14 @@ export default function Player({ onToggleQueue, showQueue }) {
     try {
       if (isPlaying) {
         ytPlayerRef.current.loadVideoById(ytId);
-        if (typeof ytPlayerRef.current.unMute === 'function') ytPlayerRef.current.unMute();
+        setTimeout(() => {
+          try {
+            if (ytPlayerRef.current && typeof ytPlayerRef.current.playVideo === 'function') {
+              ytPlayerRef.current.unMute();
+              ytPlayerRef.current.playVideo();
+            }
+          } catch {}
+        }, 500);
       } else {
         ytPlayerRef.current.cueVideoById(ytId);
       }
@@ -175,14 +186,16 @@ export default function Player({ onToggleQueue, showQueue }) {
 
   // Track YouTube current time and duration
   useEffect(() => {
-    if (!isYouTube || !isPlaying || !ytReady || !ytPlayerRef.current) return;
+    if (!isYouTube || !ytReady || !ytPlayerRef.current) return;
     const interval = setInterval(() => {
       try {
         if (ytPlayerRef.current && typeof ytPlayerRef.current.getCurrentTime === 'function') {
-          const time = ytPlayerRef.current.getCurrentTime();
           const dur = ytPlayerRef.current.getDuration();
-          setLocalTime(time);
-          if (dur) setDuration(dur);
+          if (dur && dur > 0) setDuration(dur);
+          if (isPlaying) {
+            const time = ytPlayerRef.current.getCurrentTime();
+            setLocalTime(time);
+          }
         }
       } catch {}
     }, 250);
