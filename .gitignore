@@ -8,4 +8,4 @@ dist-desktop/
 .DS_Store
 logs/
 *.log
-uploads/
+uploads/".env" 
