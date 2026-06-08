@@ -949,20 +949,20 @@ export const AppProvider = ({ children }) => {
   }, []);
 
   const startOAuthFlow = (provider) => {
-    const width = 460;
-    const height = 620;
-    const left = window.screen.width / 2 - width / 2;
-    const top = window.screen.height / 2 - height / 2;
-    const realProviders = ['google', 'discord'];
-    const url = realProviders.includes(provider)
-      ? `${API_URL}/api/auth/${provider}`
-      : `${API_URL}/api/auth/oauth-mock?provider=${provider}`;
-    window.open(
-      url,
-      `Connexion via ${provider}`,
-      `width=${width},height=${height},top=${top},left=${left},scrollbars=yes,resizable=yes`
-    );
-  };
+  const width = 800;
+  const height = 700;
+  const left = window.screen.width / 2 - width / 2;
+  const top = window.screen.height / 2 - height / 2;
+  const realProviders = ['google', 'discord'];
+  const url = realProviders.includes(provider)
+    ? `${API_URL}/api/auth/${provider}`
+    : `${API_URL}/api/auth/oauth-mock?provider=${provider}`;
+  window.open(
+    url,
+    `Connexion via ${provider}`,
+    `width=${width},height=${height},top=${top},left=${left},scrollbars=yes,resizable=yes`
+  );
+};
 
   return (
     <AppContext.Provider value={{
