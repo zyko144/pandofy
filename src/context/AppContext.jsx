@@ -232,8 +232,11 @@ export const AppProvider = ({ children }) => {
       const res = await fetch(`${API_URL}/api/version`);
       if (res.ok) {
         const data = await res.json();
-        // Always show what's new on launch
-        setUpdateInfo({ ...data, showOnLaunch: true });
+        const lastSeen = localStorage.getItem('pandofy_last_version');
+        if (data.version && data.version !== lastSeen) {
+          setUpdateInfo({ ...data, showOnLaunch: true });
+          localStorage.setItem('pandofy_last_version', data.version);
+        }
       }
     } catch (e) {
       console.warn("Could not check version:", e);
@@ -283,26 +286,6 @@ export const AppProvider = ({ children }) => {
         setIsServerActive(true);
         await refreshData();
         await checkAppVersion();
-
-        // Validate JWT token with server and restore fresh session
-        const token = localStorage.getItem('pandofy_token');
-        const storedUser = localStorage.getItem('pandofy_session_user');
-        if (token && storedUser) {
-          try {
-            const res = await authFetch(`${API_URL}/api/users/${storedUser}`);
-            if (res.ok) {
-              const freshUser = await res.json();
-              if (freshUser && freshUser.username) {
-                setUser(freshUser);
-                await saveUser(freshUser);
-              }
-            } else if (res.status === 401 || res.status === 403) {
-              localStorage.removeItem('pandofy_token');
-              localStorage.removeItem('pandofy_session_user');
-              setUser(null);
-            }
-          } catch {}
-        }
       }
     }
     initApp();

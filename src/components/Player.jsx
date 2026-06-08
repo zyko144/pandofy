@@ -361,7 +361,7 @@ export default function Player({ onToggleQueue, showQueue }) {
       {/* Off-screen container for YouTube Player API */}
       <div 
         ref={ytContainerRef}
-        style={{ position: 'fixed', top: '-9999px', left: '-9999px', width: 1, height: 1, overflow: 'hidden', opacity: 0, pointerEvents: 'none', zIndex: -9999, visibility: 'hidden' }}
+        style={{ position: 'fixed', top: '0px', left: '-1000px', width: '200px', height: '200px', overflow: 'hidden', pointerEvents: 'none', zIndex: -9999 }}
       />
 
       {/* Left: Track info */}

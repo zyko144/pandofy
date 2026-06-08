@@ -496,12 +496,14 @@ app.get('/api/admin/clear-tracks', async (req, res) => {
 // ─── VERSION ─────────────────────────────────────────────────
 app.get('/api/version', (req, res) => {
   res.json({
-    version: '2.2.9',
+    version: '2.2.10',
     changelog: [
+      '🎵 Fix des sons YouTube : audio background fonctionnel dans l\'application Electron',
+      '🔑 Rôles Google OAuth : Inscription automatique des comptes Google avec le rôle \'artist\' pour la publication de titres',
       '⚙️ Intégration d\'un chargeur d\'.env natif au démarrage du serveur backend pour lire les clés d\'API Google',
       '🛠️ Fix du bouton de suppression de playlist (implémentation de la fonction deletePlaylist dans le contexte client)',
       '📦 Migration complète de l\'archive d\'exécution (désactivation ASAR pour stabiliser le chargeur Node ESM et SQLite native)',
-      '🛡️ Fix du démarrage du serveur local en processus séparé (correctif bug ASAR de chargement ESM et blocages de ports)',
+      '🛠️ Fix du démarrage du serveur local en processus séparé (correctif bug ASAR de chargement ESM et blocages de ports)',
       '🌐 Remplacement des emojis de connexion sociale par les vrais logos de marque (Google, GitHub, Discord, Apple)',
       '🔑 Connexion via de vrais comptes Google (OAuth 2.0) avec invite de sélection de compte',
       '⚡ Élimination totale de la latence de chargement et de buffering audio',
