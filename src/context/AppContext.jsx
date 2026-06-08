@@ -232,10 +232,9 @@ export const AppProvider = ({ children }) => {
       const res = await fetch(`${API_URL}/api/version`);
       if (res.ok) {
         const data = await res.json();
-        const lastSeen = localStorage.getItem('pandofy_last_version');
+        const lastSeen = localStorage.getItem('pandofy_last_seen_version');
         if (data.version && data.version !== lastSeen) {
           setUpdateInfo({ ...data, showOnLaunch: true });
-          localStorage.setItem('pandofy_last_version', data.version);
         }
       }
     } catch (e) {

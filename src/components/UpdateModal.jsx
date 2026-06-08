@@ -33,18 +33,18 @@ export default function WhatsNewModal() {
   };
 
   return (
-    <div className="modal-overlay" style={{ zIndex: 10000 }} onClick={isLaunchInfo ? handleClose : undefined}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 500 }}>
+    <div className="modal-overlay" style={{ zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.85)' }} onClick={isLaunchInfo ? handleClose : undefined}>
+      <div className="modal-content animate-fade-in" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 500, width: '100%', background: '#121212', border: '1.5px solid #FF6600', borderRadius: 20, padding: 30, boxShadow: '0 20px 40px rgba(0,0,0,0.9), 0 0 25px rgba(255,102,0,0.25)' }}>
 
         {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: 24 }}>
-          <div style={{ display: 'inline-flex', padding: 14, borderRadius: '50%', backgroundColor: 'rgba(255,102,0,0.12)', color: '#FF6600', marginBottom: 14 }}>
-            {isDownloaded ? <CheckCircle size={36} /> : <Sparkles size={36} />}
+          <div style={{ display: 'inline-flex', padding: 14, borderRadius: '50%', backgroundColor: '#181818', border: '2px solid #FF6600', color: '#FF6600', marginBottom: 14, boxShadow: '0 0 15px rgba(255,102,0,0.2)' }}>
+            {isDownloaded ? <CheckCircle size={32} /> : <Sparkles size={32} />}
           </div>
-          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.6rem', fontWeight: 900, margin: 0, color: '#fff' }}>
+          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.8rem', fontWeight: 900, margin: 0, color: '#fff', letterSpacing: '-0.5px' }}>
             {isDownloaded ? 'Mise à jour prête !' : isLaunchInfo ? `Bienvenue sur Pandofy` : 'Nouvelle version disponible'}
           </h2>
-          <div style={{ fontSize: '0.8rem', color: '#FF6600', fontWeight: 700, marginTop: 6, textTransform: 'uppercase', letterSpacing: '1.5px' }}>
+          <div style={{ fontSize: '0.8rem', color: '#FF6600', fontWeight: 800, marginTop: 8, textTransform: 'uppercase', letterSpacing: '2px' }}>
             Version {updateInfo.version}
           </div>
         </div>

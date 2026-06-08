@@ -496,8 +496,11 @@ app.get('/api/admin/clear-tracks', async (req, res) => {
 // ─── VERSION ─────────────────────────────────────────────────
 app.get('/api/version', (req, res) => {
   res.json({
-    version: '2.2.10',
+    version: '2.2.11',
     changelog: [
+      '🎵 Résolution définitive YouTube : iframe native robuste par communication postMessage sans blocages API',
+      '⚡ Chronologie interactive : Glissement et clic fluides (Drag & Seek) sur la barre de défilement',
+      '✨ Écran d\'accueil premium : Modal des nouveautés redessiné avec bordure orange lumineuse et logo stylisé',
       '🎵 Fix des sons YouTube : audio background fonctionnel dans l\'application Electron',
       '🔑 Rôles Google OAuth : Inscription automatique des comptes Google avec le rôle \'artist\' pour la publication de titres',
       '⚙️ Intégration d\'un chargeur d\'.env natif au démarrage du serveur backend pour lire les clés d\'API Google',
