@@ -30,7 +30,7 @@ function loadEnv(envPath) {
         if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
           val = val.substring(1, val.length - 1);
         }
-        process.env[key] = val;
+        if (!process.env[key]) process.env[key] = val;
       });
       console.log(`[ENV] Loaded environment variables from: ${envPath}`);
     }
