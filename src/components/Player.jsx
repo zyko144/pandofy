@@ -46,7 +46,10 @@ export default function Player({ onToggleQueue, showQueue }) {
 
   // Control YouTube play/pause
   useEffect(() => {
-    if (!isYouTube || !ytIframeRef.current) return;
+    if (!isYouTube || !ytIframeRef.current || !ytPlayerReady) {
+      console.log(`[YT PLAYER] Play/pause sync deferred: isYouTube=${isYouTube}, ready=${ytPlayerReady}`);
+      return;
+    }
     try {
       console.log(`[YT PLAYER] Syncing play state: isPlaying = ${isPlaying}`);
       const msg = isPlaying
@@ -56,11 +59,14 @@ export default function Player({ onToggleQueue, showQueue }) {
     } catch (err) {
       console.error("[YT PLAYER] Error syncing play state:", err);
     }
-  }, [isPlaying, isYouTube]);
+  }, [isPlaying, isYouTube, ytPlayerReady]);
 
   // Sync YouTube volume/mute
   useEffect(() => {
-    if (!isYouTube || !ytIframeRef.current) return;
+    if (!isYouTube || !ytIframeRef.current || !ytPlayerReady) {
+      console.log(`[YT PLAYER] Volume sync deferred: isYouTube=${isYouTube}, ready=${ytPlayerReady}`);
+      return;
+    }
     try {
       const vol = muted ? 0 : Math.round(volume * 100);
       console.log(`[YT PLAYER] Syncing volume: vol = ${vol}, muted = ${muted}`);
@@ -79,7 +85,7 @@ export default function Player({ onToggleQueue, showQueue }) {
     } catch (err) {
       console.error("[YT PLAYER] Error syncing volume state:", err);
     }
-  }, [volume, muted, isYouTube]);
+  }, [volume, muted, isYouTube, ytPlayerReady]);
 
   // Listen for YouTube API events (ready, timeupdate, duration, ended)
   useEffect(() => {
@@ -92,8 +98,8 @@ export default function Player({ onToggleQueue, showQueue }) {
       try {
         const data = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
         
-        if (data?.event === 'onReady') {
-          console.log("[YT PLAYER] Received 'onReady' from iframe, setting player ready!");
+        if (data?.event === 'onReady' || data?.event === 'listening' || data?.event === 'initialDelivery') {
+          console.log(`[YT PLAYER] Received '${data.event}' from iframe, setting player ready!`);
           setYtPlayerReady(true);
         }
 
@@ -316,29 +322,7 @@ export default function Player({ onToggleQueue, showQueue }) {
           allowFullScreen
           title="yt-audio"
           onLoad={() => {
-            console.log("[YT PLAYER] iframe loaded! Sending initial volume and play states.");
-            setTimeout(() => {
-              try {
-                if (!ytIframeRef.current) return;
-                const win = ytIframeRef.current.contentWindow;
-                const vol = muted ? 0 : Math.round(volume * 100);
-                
-                console.log(`[YT PLAYER] Initializing iframe volume: ${vol}, muted: ${muted}`);
-                win?.postMessage(JSON.stringify({ event: 'command', func: 'setVolume', args: [vol] }), '*');
-                if (muted) {
-                  win?.postMessage(JSON.stringify({ event: 'command', func: 'mute', args: [] }), '*');
-                } else {
-                  win?.postMessage(JSON.stringify({ event: 'command', func: 'unMute', args: [] }), '*');
-                }
-
-                if (isPlaying) {
-                  console.log("[YT PLAYER] Initializing iframe play state: PLAYING");
-                  win?.postMessage(JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*');
-                }
-              } catch (err) {
-                console.error("[YT PLAYER] Error in initial iframe configuration:", err);
-              }
-            }, 600);
+            console.log("[YT PLAYER] iframe HTML loaded.");
           }}
         />
       )}
